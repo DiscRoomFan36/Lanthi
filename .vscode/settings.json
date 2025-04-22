@@ -1,0 +1,15 @@
+{
+    "C_Cpp.errorSquiggles": "enabled",
+    "cSpell.words": [
+        "Lanthi",
+    ],
+    "files.associations": {
+        "*.h": "c",
+        "array": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "utility": "c",
+        "string": "c",
+        "vector": "c"
+    }
+}

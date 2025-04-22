@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "name": "linux-clang-x86",
+      "compilerPath": "/usr/bin/clang",
+      "intelliSenseMode": "linux-clang-x86",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "${workspaceFolder}/Source/**",
+        "/usr/lib/llvm-18/lib/clang/18/include/**"
+      ],
+      "defines": ["STRING_VIEW_IMPLEMENTATION", "ARENA_IMPLEMENTATION"],
+      "cStandard": "c23",
+      "browse": {
+        "path": [
+          "${workspaceFolder}/**",
+          "${workspaceFolder}/Source/**",
+          "/usr/lib/llvm-18/lib/clang/18/include/**"
+        ]
+      }
+    }
+  ],
+  "version": 4
+}
