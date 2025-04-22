@@ -7,11 +7,11 @@ SOURCE  := ./Source
 BUILD   := ./Build
 
 
-all: $(BUILD)/main
+all: clean $(BUILD)/main
 
 
-$(BUILD)/main: $(BUILD)/main.o $(BUILD)/tokenizer.o $(BUILD)/String_View.o                    | build
-	$(CC) $(CFLAGS) -o $(BUILD)/main   $(BUILD)/main.o $(BUILD)/tokenizer.o $(BUILD)/String_View.o
+$(BUILD)/main: $(BUILD)/main.o $(BUILD)/tokenizer.o $(BUILD)/String_View.o $(BUILD)/arena.o            | build
+	$(CC) $(CFLAGS) -o $(BUILD)/main   $(BUILD)/main.o $(BUILD)/tokenizer.o $(BUILD)/String_View.o $(BUILD)/arena.o
 
 
 # ------------------ *.o's ------------------
@@ -24,6 +24,9 @@ $(BUILD)/tokenizer.o: $(SOURCE)/tokenizer.c                              | build
 
 $(BUILD)/String_View.o: $(SOURCE)/String_View.h                          | build
 	$(CC) $(CFLAGS) -x c -DSTRING_VIEW_IMPLEMENTATION -c -o $(BUILD)/String_View.o $(SOURCE)/String_View.h
+
+$(BUILD)/arena.o: $(SOURCE)/arena.h                                      | build
+	$(CC) $(CFLAGS) -x c -DARENA_IMPLEMENTATION -c -o $(BUILD)/arena.o $(SOURCE)/arena.h
 
 
 
