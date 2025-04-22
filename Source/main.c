@@ -50,6 +50,34 @@ SV read_entire_file(const char *filename) {
 }
 
 
+
+// TODO what dose this return
+AST_Node *parse_expression(Arena *a, Tokenizer *t) {
+    Token token = get_next_token(t);
+
+    if (token.kind == TK_Ident) {
+
+        // got an ident, now what are we doing with it?
+        Token next = get_next_token(t);
+        if (next.kind == '(') {
+            // were calling a function!
+
+            Token thing = get_next_token(t);
+
+            printf("name ["SV_Fmt"]\n", SV_Arg(thing.name));
+
+            assert(False && "TODO: handle this");
+        }
+
+        assert(False && "TODO: figure out error reporting here");
+    }
+
+
+    assert(False && "TODO: parse statement, non ident");
+}
+
+
+
 #define return_defer(res) do { result = res; goto defer; } while(0)
 
 void usage(const char *prog_name) {
@@ -135,10 +163,16 @@ int main(int argc, char const *argv[]) {
 
             // now parse statements until '}'
             while (True) {
-                Token token = get_next_token(t);
+                Token token = peek_next_token(t);
 
                 // end of function
-                if (token.kind == '}') break;
+                if (token.kind == '}') {
+                    get_next_token(t);
+                    break;
+                }
+
+                AST_Node *thing = parse_expression(&arena, t);
+                assert(False && "TODO: use the result");
 
                 fprintf(stderr, "%s:%ld: unexpected token: |"SV_Fmt"|\n", filename, t->line_num, SV_Arg(token.name));
                 return_defer(1);

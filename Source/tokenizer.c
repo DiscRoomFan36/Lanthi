@@ -98,6 +98,7 @@ local void chop_whitespace(Tokenizer *t) {
             // TODO support multi layer comments
             s64 index = find_index_of(t->parseing, multiline_end);
             if (index == -1) {
+                assert(False && "TODO figure out error reporting from here");
                 advance(t, t->parseing.size);
                 return;
             }
@@ -132,7 +133,34 @@ Token peek_next_token(Tokenizer *t) {
     }
 
     if (t->parseing.data[0] == '"') {
-        assert(False && "TODO: get_next_token: parse string literal");
+        SV thing = { .data = t->parseing.data + 1, .size = t->parseing.size - 1 };
+
+        while (True) {
+            s64 index = find_index_of_char(thing, '"');
+            if (index == -1) {
+                assert(False && "TODO figure out error reporting from here");
+            }
+            // count number of prev /
+            s64 n = 0;
+            for (s64 i = index-1; i > 0; i--) {
+                if (thing.data[i] != '\\') break;
+                n += 1;
+            }
+            thing.data += index + 1;
+            thing.size -= index + 1;
+            if (n % 2 == 0) {
+                break;
+            }
+        }
+
+        // TODO: dose this insert the special chars?
+        return (Token) {
+            .kind = TK_String_Lit,
+            .name = {
+                .data = t->parseing.data,
+                .size = t->parseing.size - thing.size,
+            },
+        };
     }
 
     // just return the single char

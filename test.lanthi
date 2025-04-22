@@ -8,5 +8,5 @@ foo :: () {}
 bar :: () {}
 
 main :: () {
-    // print("Hello Lanthi");
+    print("Hello Lanthi");
 }

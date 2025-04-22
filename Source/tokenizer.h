@@ -11,6 +11,7 @@ typedef struct Tokenizer {
 typedef enum TokenKind {
     TK_Eof = 0,
     TK_Ident,
+    TK_String_Lit,
 
     TK_Colon      = ':',
     TK_SemiColon  = ';',
