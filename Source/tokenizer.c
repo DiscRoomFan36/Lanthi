@@ -111,25 +111,19 @@ local void chop_whitespace(Tokenizer *t) {
     }
 }
 
-Token get_next_token(Tokenizer *t) {
+Token peek_next_token(Tokenizer *t) {
     assert(t->parseing.size >= 0);
 
     chop_whitespace(t);
 
     if (t->parseing.size == 0) return (Token) { .kind = TK_Eof, .name = {0} };
 
-    // not a comment, not whitespace
-
-    // check for ident
     if (is_alpha(t->parseing.data[0])) {
         SV ident = {.data = t->parseing.data, .size = 1};
-        advance(t, 1);
-
-        while (t->parseing.size > 0 && is_ident_char(t->parseing.data[0])) {
+        for (s64 i = 1; i < t->parseing.size; i++) {
+            if (!is_ident_char(t->parseing.data[i])) break;
             ident.size += 1;
-            advance(t, 1);
         }
-
         return (Token){ .kind = TK_Ident, .name = ident };
     }
 
@@ -146,8 +140,14 @@ Token get_next_token(Tokenizer *t) {
         .kind = t->parseing.data[0],
         .name = { .data = t->parseing.data, .size = 1 },
     };
-    advance(t, 1);
     return next_token;
+}
+
+Token get_next_token(Tokenizer *t) {
+    assert(t->parseing.size >= 0);
+    Token token = peek_next_token(t);
+    advance(t, token.name.size);
+    return token;
 }
 
 bool32 expect_next_token(Tokenizer *t, TokenKind expect, Token *out_token) {
