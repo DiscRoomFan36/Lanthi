@@ -8,45 +8,22 @@
 #include "ints.h"
 #include "String_View.h"
 #include "dynamic_array.h"
+#include "arena.h"
 
 #include "tokenizer.h"
-
-
-// TODO put all this stuff into a AST file
-typedef enum AST_Node_Kind {
-    AST_NONE = 0,
-    AST_STATEMENT,
-    AST_FUNCTION,
-} AST_Node_Kind;
-
-typedef struct AST_Node {
-    AST_Node_Kind kind;
-} AST_Node;
-
-typedef struct AST_Node_Statement {
-    AST_Node base;
-} AST_Node_Statement;
-
-typedef struct AST_Node_Statement_Array {
-    AST_Node_Statement *items;
-    u64 count;
-    u64 capacity;
-} AST_Node_Statement_Array;
-
-typedef struct AST_Node_Function {
-    AST_Node base;
-    SV name;
-    AST_Node_Statement_Array statements;
-} AST_Node_Function;
-
-typedef struct AST_Node_Function_Array {
-    AST_Node_Function *items;
-    u64 count;
-    u64 capacity;
-} AST_Node_Function_Array;
+#include "AST_Node.h"
 
 
 
+SV arena_SV_dup(Arena *a, SV s) {
+    SV result;
+    result.data = Arena_alloc(a, s.size);
+    result.size = s.size;
+
+    for (s64 i = 0; i < s.size; i++) result.data[i] = s.data[i];
+
+    return result;
+}
 
 SV read_entire_file(const char *filename) {
     FILE *file = fopen(filename, "rb");
@@ -96,7 +73,12 @@ int main(int argc, char const *argv[]) {
 
     int result = 0;
 
-    AST_Node_Function_Array functions = {0};
+    // an arena to just dump things in.
+    // in the future we might separate different alloc's into different arena's.
+    Arena arena = {0};
+
+    AST_Node_Array nodes = {0};
+
 
     Tokenizer tokenizer = new_tokenizer(file);
     Tokenizer *t = &tokenizer;
@@ -112,10 +94,9 @@ int main(int argc, char const *argv[]) {
         if (token.kind == TK_Ident) {
             printf("got function ["SV_Fmt"]\n", SV_Arg(token.name));
 
-            // start building AST
-            AST_Node_Function func = {0};
-            func.base.kind = AST_FUNCTION;
-            func.name = SV_dup(token.name);
+            // start building AST, must be a const assignment for now
+            AST_Node_Const_Assignment *assignment = Arena_alloc(&arena, sizeof(AST_Node_Const_Assignment));
+            assignment->name = arena_SV_dup(&arena, token.name);
 
             // TODO fprintf, turn into 'report_expected'
 
@@ -150,21 +131,27 @@ int main(int argc, char const *argv[]) {
                 }
             }
 
+            AST_Node_Function func = {0};
 
             // now parse statements until '}'
             while (True) {
                 Token token = get_next_token(t);
 
-                if (token.kind == '}') {
-                    break;
-                }
-
+                // end of function
+                if (token.kind == '}') break;
 
                 fprintf(stderr, "%s:%ld: unexpected token: |"SV_Fmt"|\n", filename, t->line_num, SV_Arg(token.name));
                 return_defer(1);
             }
 
-            da_append(&functions, func);
+
+            assignment->function = func;
+
+            AST_Node new_node = {0};
+            new_node.kind = AST_CONST_ASSIGNMENT;
+            new_node.rest = assignment;
+
+            arena_da_append(&arena, &nodes, new_node);
             continue;
         }
 
@@ -178,14 +165,7 @@ int main(int argc, char const *argv[]) {
 
 
 defer:
-    // TODO use an arena, this is tedious.
-    for (size_t i = 0; i < functions.count; i++) {
-        AST_Node_Function func = functions.items[i];
-        SV_free(&func.name);
-        da_free(&func.statements);
-    }
-
-    da_free(&functions);
+    Arena_free(&arena);
     free(file.data);
     return result;
 }
