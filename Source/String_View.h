@@ -56,6 +56,7 @@ s64 find_index_of(SV s, SV needle);
 
 #endif // STRING_VIEW_H_
 
+
 #ifdef STRING_VIEW_IMPLEMENTATION
 
 #ifndef STRING_VIEW_IMPLEMENTATION_GUARD_
