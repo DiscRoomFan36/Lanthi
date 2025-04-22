@@ -64,83 +64,90 @@ local inline void advance(Tokenizer *t, s64 count) {
     t->parseing.size -= count;
 }
 
-Token get_next_token(Tokenizer *t) {
-    assert(t->parseing.size >= 0);
-
+local void chop_whitespace(Tokenizer *t) {
     while (True) {
         // advance cursor until non whitespace
         while (t->parseing.size > 0 && is_space(t->parseing.data[0])) {
             advance(t, 1);
         }
 
-        if (t->parseing.size == 0) return (Token) { .kind = TK_Eof, .name = {0} };
+        // return on eof
+        if (t->parseing.size == 0) return;
 
         // check if the char is comment char
+        if (t->parseing.size < 2) return;
 
         // comments need 2 char's
-        if (t->parseing.size > 1) {
-            if (t->parseing.data[0] == '/' && t->parseing.data[1] == '/') {
-                // its a line comment
-                advance(t, 2);
-                s64 index = find_index_of_char(t->parseing, '\n');
-                if (index == -1) {
-                    advance(t, t->parseing.size);
-                    return (Token) { .kind = TK_Eof, .name = {0} };
-                }
-
-                // advance past the line.
-                advance(t, index + 1);
-                continue;
+        if (t->parseing.data[0] == '/' && t->parseing.data[1] == '/') {
+            // its a line comment
+            advance(t, 2);
+            s64 index = find_index_of_char(t->parseing, '\n');
+            if (index == -1) {
+                advance(t, t->parseing.size);
+                return;
             }
 
-            if (t->parseing.data[0] == '/' && t->parseing.data[1] == '*') {
-                // is a multiline comment
-                advance(t, 2);
-                // TODO support multi layer comments
-                s64 index = find_index_of(t->parseing, multiline_end);
-                if (index == -1) {
-                    advance(t, t->parseing.size);
-                    return (Token) { .kind = TK_Eof, .name = {0} };
-                }
-
-                advance(t, index + multiline_end.size);
-                continue;
-            }
+            // advance past the line.
+            advance(t, index + 1);
+            continue;
         }
 
-        // not a comment, not whitespace
-
-        // check for ident
-        if (is_alpha(t->parseing.data[0])) {
-            SV ident = {.data = t->parseing.data, .size = 1};
-            advance(t, 1);
-
-            while (t->parseing.size > 0 && is_ident_char(t->parseing.data[0])) {
-                ident.size += 1;
-                advance(t, 1);
+        if (t->parseing.data[0] == '/' && t->parseing.data[1] == '*') {
+            // is a multiline comment
+            advance(t, 2);
+            // TODO support multi layer comments
+            s64 index = find_index_of(t->parseing, multiline_end);
+            if (index == -1) {
+                advance(t, t->parseing.size);
+                return;
             }
 
-            return (Token){ .kind = TK_Ident, .name = ident };
+            advance(t, index + multiline_end.size);
+            continue;
         }
 
-        if (is_digit(t->parseing.data[0])) {
-            assert(False && "TODO: get_next_token: parse int literal");
-        }
 
-        if (t->parseing.data[0] == '"') {
-            assert(False && "TODO: get_next_token: parse string literal");
-        }
+        return;
+    }
+}
 
-        // just return the single char
-        Token next_token = {
-            .kind = t->parseing.data[0],
-            .name = { .data = t->parseing.data, .size = 1 },
-        };
+Token get_next_token(Tokenizer *t) {
+    assert(t->parseing.size >= 0);
+
+    chop_whitespace(t);
+
+    if (t->parseing.size == 0) return (Token) { .kind = TK_Eof, .name = {0} };
+
+    // not a comment, not whitespace
+
+    // check for ident
+    if (is_alpha(t->parseing.data[0])) {
+        SV ident = {.data = t->parseing.data, .size = 1};
         advance(t, 1);
-        return next_token;
+
+        while (t->parseing.size > 0 && is_ident_char(t->parseing.data[0])) {
+            ident.size += 1;
+            advance(t, 1);
+        }
+
+        return (Token){ .kind = TK_Ident, .name = ident };
     }
 
-    assert(False && "UNREACHABLE");
+    if (is_digit(t->parseing.data[0])) {
+        assert(False && "TODO: get_next_token: parse int literal");
+    }
+
+    if (t->parseing.data[0] == '"') {
+        assert(False && "TODO: get_next_token: parse string literal");
+    }
+
+    // just return the single char
+    Token next_token = {
+        .kind = t->parseing.data[0],
+        .name = { .data = t->parseing.data, .size = 1 },
+    };
+    advance(t, 1);
+    return next_token;
 }
 
 bool32 expect_next_token(Tokenizer *t, TokenKind expect, Token *out_token) {
