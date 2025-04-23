@@ -10,8 +10,8 @@ BUILD   := ./Build
 all: clean $(BUILD)/main
 
 
-$(BUILD)/main: $(BUILD)/main.o $(BUILD)/tokenizer.o $(BUILD)/String_View.o $(BUILD)/arena.o            | build
-	$(CC) $(CFLAGS) -o $(BUILD)/main   $(BUILD)/main.o $(BUILD)/tokenizer.o $(BUILD)/String_View.o $(BUILD)/arena.o
+$(BUILD)/main: $(BUILD)/main.o $(BUILD)/tokenizer.o $(BUILD)/String_View.o $(BUILD)/arena.o $(BUILD)/context.o           | build
+	$(CC) $(CFLAGS) -o $(BUILD)/main   $(BUILD)/main.o $(BUILD)/tokenizer.o $(BUILD)/String_View.o $(BUILD)/arena.o $(BUILD)/context.o
 
 
 # ------------------ *.o's ------------------
@@ -27,6 +27,9 @@ $(BUILD)/String_View.o: $(SOURCE)/String_View.h                          | build
 
 $(BUILD)/arena.o: $(SOURCE)/arena.h                                      | build
 	$(CC) $(CFLAGS) -x c -DARENA_IMPLEMENTATION -c -o $(BUILD)/arena.o $(SOURCE)/arena.h
+
+$(BUILD)/context.o: $(SOURCE)/context.h                                      | build
+	$(CC) $(CFLAGS) -x c -DCONTEXT_IMPLEMENTATION -c -o $(BUILD)/context.o $(SOURCE)/context.h
 
 
 

@@ -9,6 +9,7 @@
 #include "String_View.h"
 #include "dynamic_array.h"
 #include "arena.h"
+#include "context.h"
 
 #include "tokenizer.h"
 #include "AST_Node.h"
@@ -50,8 +51,10 @@ SV read_entire_file(const char *filename) {
 }
 
 
-AST_Node_Argument *parse_argument(Arena *a, Tokenizer *t) {
-    AST_Node_Argument *argument = Arena_calloc(a, sizeof(AST_Node_Argument));
+AST_Node_Argument *parse_argument(Tokenizer *t) {
+    Context *context = get_context();
+
+    AST_Node_Argument *argument = Arena_calloc(&context->ast_arena, sizeof(AST_Node_Argument));
     // TODO this is error prone, make functions that return the struct *, or something
     argument->kind = AST_ARGUMENT;
 
@@ -63,11 +66,11 @@ AST_Node_Argument *parse_argument(Arena *a, Tokenizer *t) {
 
         // parse expression until ,
         if (token.kind == TK_String_Lit) {
-            AST_Node_String_Lit *str_lit = Arena_alloc(a, sizeof(AST_Node_String_Lit));
+            AST_Node_String_Lit *str_lit = Arena_alloc(&context->ast_arena, sizeof(AST_Node_String_Lit));
             str_lit->kind = AST_STRING_LIT;
-            str_lit->literal = arena_SV_dup(a, token.text);
+            str_lit->literal = arena_SV_dup(&context->string_arena, token.text);
 
-            arena_da_append(a, &argument->args, (AST_Node *) str_lit);
+            arena_da_append(&context->ast_arena, &argument->args, (AST_Node *) str_lit);
 
             // skip the token
             get_next_token(t);
@@ -89,7 +92,8 @@ AST_Node_Argument *parse_argument(Arena *a, Tokenizer *t) {
 
 
 // TODO what dose this return
-AST_Node *parse_expression(Arena *a, Tokenizer *t) {
+AST_Node *parse_expression(Tokenizer *t) {
+    // Context *context = get_context();
     Token token = get_next_token(t);
 
     if (token.kind == TK_Ident) {
@@ -99,7 +103,7 @@ AST_Node *parse_expression(Arena *a, Tokenizer *t) {
         if (next.kind == '(') {
             // were calling a function!
 
-            AST_Node_Argument *args = parse_argument(a, t);
+            AST_Node_Argument *args = parse_argument(t);
             if (!expect_next_token(t, ')', NULL)) {
                 assert(False && "parse argument should put us in the right place");
             }
@@ -137,11 +141,13 @@ int main(int argc, char const *argv[]) {
         exit(1);
     }
 
-    int result = 0;
+    Context *context = get_context();
+    // memset these to 0, even though the context grantees this.
+    // just to make sure we know what were doing.
+    memset(&context->string_arena, 0, sizeof(Arena));
+    memset(&context->ast_arena,    0, sizeof(Arena));
 
-    // an arena to just dump things in.
-    // in the future we might separate different alloc's into different arena's.
-    Arena arena = {0};
+    int result = 0;
 
     AST_Node_Array nodes = {0};
 
@@ -161,8 +167,9 @@ int main(int argc, char const *argv[]) {
             printf("got function ["SV_Fmt"]\n", SV_Arg(token.text));
 
             // start building AST, must be a const assignment for now
-            AST_Node_Const_Assignment *assignment = Arena_alloc(&arena, sizeof(AST_Node_Const_Assignment));
-            assignment->name = arena_SV_dup(&arena, token.text);
+            Context *context = get_context();
+            AST_Node_Const_Assignment *assignment = Arena_alloc(&context->ast_arena, sizeof(AST_Node_Const_Assignment));
+            assignment->name = arena_SV_dup(&context->string_arena, token.text);
 
             // TODO fprintf, turn into 'report_expected'
 
@@ -209,7 +216,7 @@ int main(int argc, char const *argv[]) {
                     break;
                 }
 
-                AST_Node *thing = parse_expression(&arena, t);
+                AST_Node *thing = parse_expression(t);
                 assert(False && "TODO: use the result");
 
                 fprintf(stderr, "%s:%ld: unexpected token: |"SV_Fmt"|\n", filename, t->line_num, SV_Arg(token.text));
@@ -223,7 +230,7 @@ int main(int argc, char const *argv[]) {
             new_node.kind = AST_CONST_ASSIGNMENT;
             new_node.rest = assignment;
 
-            arena_da_append(&arena, &nodes, new_node);
+            arena_da_append(&context->ast_arena, &nodes, new_node);
             continue;
         }
 
@@ -237,7 +244,10 @@ int main(int argc, char const *argv[]) {
 
 
 defer:
-    Arena_free(&arena);
+
+    assert(context == get_context() && "Make sure the context is fine");
+    Arena_free(&context->ast_arena);
+    Arena_free(&context->string_arena);
     free(file.data);
     return result;
 }
