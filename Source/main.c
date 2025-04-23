@@ -50,6 +50,43 @@ SV read_entire_file(const char *filename) {
 }
 
 
+AST_Node_Argument *parse_argument(Arena *a, Tokenizer *t) {
+    AST_Node_Argument *argument = Arena_calloc(a, sizeof(AST_Node_Argument));
+    // TODO this is error prone, make functions that return the struct *, or something
+    argument->kind = AST_ARGUMENT;
+
+    while (True) {
+        Token token = peek_next_token(t);
+
+        // end of args
+        if (token.kind == ')') { return argument; }
+
+        // parse expression until ,
+        if (token.kind == TK_String_Lit) {
+            AST_Node_String_Lit *str_lit = Arena_alloc(a, sizeof(AST_Node_String_Lit));
+            str_lit->kind = AST_STRING_LIT;
+            str_lit->literal = arena_SV_dup(a, token.text);
+
+            arena_da_append(a, &argument->args, (AST_Node *) str_lit);
+
+            // skip the token
+            get_next_token(t);
+
+            continue;
+        }
+
+
+        // hmm how do we handle ","?
+        // if (token.kind == ',') {}
+        // then check is there has already been an arg?
+
+        fprintf(stderr, "%s:%ld: unexpected token in argument: |"SV_Fmt"|\n", "TODO: add context so we can get the filename", t->line_num, SV_Arg(token.text));
+        // TODO we must get better error handling.
+        // maybe call a function that exits for us? but also dose the cleanup
+        exit(1);
+    }
+}
+
 
 // TODO what dose this return
 AST_Node *parse_expression(Arena *a, Tokenizer *t) {
@@ -62,9 +99,10 @@ AST_Node *parse_expression(Arena *a, Tokenizer *t) {
         if (next.kind == '(') {
             // were calling a function!
 
-            Token thing = get_next_token(t);
-
-            printf("name ["SV_Fmt"]\n", SV_Arg(thing.name));
+            AST_Node_Argument *args = parse_argument(a, t);
+            if (!expect_next_token(t, ')', NULL)) {
+                assert(False && "parse argument should put us in the right place");
+            }
 
             assert(False && "TODO: handle this");
         }
@@ -120,41 +158,41 @@ int main(int argc, char const *argv[]) {
         }
 
         if (token.kind == TK_Ident) {
-            printf("got function ["SV_Fmt"]\n", SV_Arg(token.name));
+            printf("got function ["SV_Fmt"]\n", SV_Arg(token.text));
 
             // start building AST, must be a const assignment for now
             AST_Node_Const_Assignment *assignment = Arena_alloc(&arena, sizeof(AST_Node_Const_Assignment));
-            assignment->name = arena_SV_dup(&arena, token.name);
+            assignment->name = arena_SV_dup(&arena, token.text);
 
             // TODO fprintf, turn into 'report_expected'
 
             { // parse the start of a function.
                 Token next;
                 if (!expect_next_token(t, ':', &next)) {
-                    fprintf(stderr, "%s:%ld: expected ':' got |"SV_Fmt"|\n", filename, t->line_num, SV_Arg(next.name));
+                    fprintf(stderr, "%s:%ld: expected ':' got |"SV_Fmt"|\n", filename, t->line_num, SV_Arg(next.text));
                     return_defer(1);
                 }
 
                 // its always constant.
                 if (!expect_next_token(t, ':', &next)) {
-                    fprintf(stderr, "%s:%ld: expected ':' got |"SV_Fmt"|\n", filename, t->line_num, SV_Arg(next.name));
+                    fprintf(stderr, "%s:%ld: expected ':' got |"SV_Fmt"|\n", filename, t->line_num, SV_Arg(next.text));
                     return_defer(1);
                 }
 
                 if (!expect_next_token(t, '(', &next)) {
-                    fprintf(stderr, "%s:%ld: expected '(' got |"SV_Fmt"|\n", filename, t->line_num, SV_Arg(next.name));
+                    fprintf(stderr, "%s:%ld: expected '(' got |"SV_Fmt"|\n", filename, t->line_num, SV_Arg(next.text));
                     return_defer(1);
                 }
 
                 // dont handle arguments yet
                 if (!expect_next_token(t, ')', &next)) {
-                    fprintf(stderr, "%s:%ld: expected ')' got |"SV_Fmt"|\n", filename, t->line_num, SV_Arg(next.name));
+                    fprintf(stderr, "%s:%ld: expected ')' got |"SV_Fmt"|\n", filename, t->line_num, SV_Arg(next.text));
                     return_defer(1);
                 }
 
                 // dont handle return arguments yet
                 if (!expect_next_token(t, '{', &next)) {
-                    fprintf(stderr, "%s:%ld: expected '{' got |"SV_Fmt"|\n", filename, t->line_num, SV_Arg(next.name));
+                    fprintf(stderr, "%s:%ld: expected '{' got |"SV_Fmt"|\n", filename, t->line_num, SV_Arg(next.text));
                     return_defer(1);
                 }
             }
@@ -174,7 +212,7 @@ int main(int argc, char const *argv[]) {
                 AST_Node *thing = parse_expression(&arena, t);
                 assert(False && "TODO: use the result");
 
-                fprintf(stderr, "%s:%ld: unexpected token: |"SV_Fmt"|\n", filename, t->line_num, SV_Arg(token.name));
+                fprintf(stderr, "%s:%ld: unexpected token: |"SV_Fmt"|\n", filename, t->line_num, SV_Arg(token.text));
                 return_defer(1);
             }
 

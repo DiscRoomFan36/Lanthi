@@ -117,7 +117,7 @@ Token peek_next_token(Tokenizer *t) {
 
     chop_whitespace(t);
 
-    if (t->parseing.size == 0) return (Token) { .kind = TK_Eof, .name = {0} };
+    if (t->parseing.size == 0) return (Token) { .kind = TK_Eof, .text = {0} };
 
     if (is_alpha(t->parseing.data[0])) {
         SV ident = {.data = t->parseing.data, .size = 1};
@@ -125,7 +125,7 @@ Token peek_next_token(Tokenizer *t) {
             if (!is_ident_char(t->parseing.data[i])) break;
             ident.size += 1;
         }
-        return (Token){ .kind = TK_Ident, .name = ident };
+        return (Token){ .kind = TK_Ident, .text = ident };
     }
 
     if (is_digit(t->parseing.data[0])) {
@@ -156,7 +156,7 @@ Token peek_next_token(Tokenizer *t) {
         // TODO: dose this insert the special chars?
         return (Token) {
             .kind = TK_String_Lit,
-            .name = {
+            .text = {
                 .data = t->parseing.data,
                 .size = t->parseing.size - thing.size,
             },
@@ -166,7 +166,7 @@ Token peek_next_token(Tokenizer *t) {
     // just return the single char
     Token next_token = {
         .kind = t->parseing.data[0],
-        .name = { .data = t->parseing.data, .size = 1 },
+        .text = { .data = t->parseing.data, .size = 1 },
     };
     return next_token;
 }
@@ -174,7 +174,7 @@ Token peek_next_token(Tokenizer *t) {
 Token get_next_token(Tokenizer *t) {
     assert(t->parseing.size >= 0);
     Token token = peek_next_token(t);
-    advance(t, token.name.size);
+    advance(t, token.text.size);
     return token;
 }
 

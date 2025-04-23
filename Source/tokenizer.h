@@ -23,8 +23,8 @@ typedef enum TokenKind {
 
 typedef struct Token {
     TokenKind kind;
-    // if its an ident.
-    SV name;
+    // what the text that was parsed was, good for lit's and ident's
+    SV text;
 } Token;
 
 

@@ -10,6 +10,8 @@
 typedef enum AST_Node_Kind {
     AST_NULL = 0,
     AST_CONST_ASSIGNMENT,
+    AST_ARGUMENT,
+    AST_STRING_LIT,
     // AST_ASSIGNMENT,
 } AST_Node_Kind;
 
@@ -37,3 +39,26 @@ typedef struct AST_Node_Const_Assignment {
 } AST_Node_Const_Assignment;
 
 
+typedef struct AST_Node_Argument {
+    AST_Node_Kind kind;
+
+    struct {
+        AST_Node **items;
+        s64 count;
+        s64 capacity;
+    } args;
+
+} AST_Node_Argument;
+
+typedef struct AST_Node_String_Lit {
+    // i kinda want this system to be like
+    /*
+        if (node.kind == AST_String_Lit) {
+            AST_Node_String_Lit *node = (AST_Node_String_Lit*) node;
+            // use the node
+        }
+    */
+
+    AST_Node_Kind kind;
+    SV literal;
+} AST_Node_String_Lit;
