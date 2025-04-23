@@ -40,8 +40,9 @@ const SV multiline_end = {
 };
 
 
-Tokenizer new_tokenizer(SV file) {
+Tokenizer new_tokenizer(const char *filename, SV file) {
     Tokenizer result = {
+        .filename = filename,
         .parseing = file,
         .line_num = 1,
     };

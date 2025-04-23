@@ -1,8 +1,15 @@
 
+#ifndef TOKENIZER_H_
+#define TOKENIZER_H_
+
+
 #include "ints.h"
 #include "String_View.h"
 
 typedef struct Tokenizer {
+    // make this a SV? or is it easier like this.
+    const char *filename;
+
     SV parseing;
 
     s64 line_num;
@@ -29,7 +36,7 @@ typedef struct Token {
 
 
 // dose not allocate. no need to free.
-Tokenizer new_tokenizer(SV file);
+Tokenizer new_tokenizer(const char *filename, SV file);
 
 // peeks at the next token.
 Token peek_next_token(Tokenizer *t);
@@ -40,3 +47,5 @@ Token get_next_token(Tokenizer *t);
 // out_token is the returned token, I wish there were multiple return values.
 bool32 expect_next_token(Tokenizer *t, TokenKind expect, Token *out_token);
 
+
+#endif // TOKENIZER_H_

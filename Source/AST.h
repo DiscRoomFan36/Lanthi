@@ -1,6 +1,12 @@
 
+#ifndef AST_H_
+#define AST_H_
+
+
 #include "ints.h"
 #include "String_View.h"
+
+#include "tokenizer.h"
 
 
 // This file is all over the place...
@@ -96,3 +102,12 @@ typedef struct AST_Node_String_Lit {
     AST_Node_Kind kind;
     SV literal;
 } AST_Node_String_Lit;
+
+
+
+AST_Node_ptr_Array tokenizer_to_AST(Tokenizer *t);
+
+void print_node(AST_Node *node, s64 indent);
+
+
+#endif // AST_H_
