@@ -1,7 +1,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <string.h>
 #include <assert.h>
 
@@ -20,7 +19,7 @@ SV read_entire_file(const char *filename) {
     SV result = {0};
 
     if (!file) {
-        fprintf(stderr, "ERROR when opening the file: %s\n", strerror(errno));
+        perror("Error when opening file");
         return result;
     }
 
