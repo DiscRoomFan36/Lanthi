@@ -15,7 +15,6 @@ typedef enum AST_Node_Kind {
     AST_CONST_ASSIGNMENT,
     AST_ARGUMENT,
     AST_STRING_LIT,
-    // AST_ASSIGNMENT,
 } AST_Node_Kind;
 
 typedef struct AST_Node {
@@ -46,7 +45,7 @@ typedef struct AST_Node_Function {
     // a function takes arguments, and runs them through an array of expressions.
     struct {
         // we know all the nodes are going to be of type
-        AST_Node_Expression *items;
+        AST_Node_Expression **items;
         s64 count;
         s64 capacity;
     } expressions;

@@ -138,6 +138,68 @@ AST_Node_Expression *parse_expression(Tokenizer *t) {
 }
 
 
+void print_spaces(int num) {
+    for (int i = 0; i < num; i++) {
+        printf("    ");
+    }
+}
+
+void print_node(AST_Node *node, s64 indent) {
+    if (node->kind == AST_CONST_ASSIGNMENT) {
+        AST_Node_Const_Assignment *node_const_assign = (AST_Node_Const_Assignment*) node;
+
+        print_spaces(indent);
+        printf(""SV_Fmt" :: () {\n", SV_Arg(node_const_assign->name));
+
+        for (s64 i = 0; i < node_const_assign->function.expressions.count; i++) {
+            AST_Node *expr_node = node_const_assign->function.expressions.items[i]->sub_expression;
+            print_node(expr_node, indent+1);
+        }
+
+        print_spaces(indent);
+        printf("}\n");
+
+        return;
+    }
+
+    if (node->kind == AST_CALL_FUNCTION) {
+        AST_Node_Call_Function *call = (AST_Node_Call_Function*)node;
+
+        print_spaces(indent);
+        printf(SV_Fmt"(\n", SV_Arg(call->function_name));
+
+
+        // TODO just print it here
+        print_node((AST_Node*)call->arguments, indent+1);
+
+        print_spaces(indent);
+        printf(");\n");
+        return;
+    }
+
+    if (node->kind == AST_ARGUMENT) {
+        AST_Node_Argument *args = (AST_Node_Argument*) node;
+
+        // TODO this is dumb? put in call function
+        for (s64 i = 0; i < args->args.count; i++) {
+            print_node(args->args.items[i], indent);
+        }
+
+        return;
+    }
+
+    if (node->kind == AST_STRING_LIT) {
+        AST_Node_String_Lit *str_lit = (AST_Node_String_Lit*)node;
+        print_spaces(indent);
+        printf(SV_Fmt"\n", SV_Arg(str_lit->literal));
+
+        return;
+    }
+
+    fprintf(stderr, "unknown ident %d\n", node->kind);
+    exit(1);
+}
+
 
 #define return_defer(res) do { result = res; goto defer; } while(0)
 
@@ -239,7 +301,7 @@ int main(int argc, char const *argv[]) {
                 }
 
                 AST_Node_Expression *thing = parse_expression(t);
-                arena_da_append(&context->ast_arena, &func.expressions, *thing);
+                arena_da_append(&context->ast_arena, &func.expressions, thing);
             }
 
             // do we allow semi after functions? and in what context?
@@ -264,6 +326,9 @@ int main(int argc, char const *argv[]) {
     printf("finished converting into AST hurray!\n");
     printf("probably should do something with it...\n");
 
+    for (s64 i = 0; i < nodes.count; i++) {
+        print_node(nodes.items[i], 0);
+    }
 
 defer:
 
@@ -271,5 +336,6 @@ defer:
     Arena_free(&context->ast_arena);
     Arena_free(&context->string_arena);
     free(file.data);
+
     return result;
 }
