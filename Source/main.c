@@ -92,8 +92,12 @@ AST_Node_Argument *parse_argument(Tokenizer *t) {
 
 
 // TODO what dose this return
-AST_Node *parse_expression(Tokenizer *t) {
-    // Context *context = get_context();
+AST_Node_Expression *parse_expression(Tokenizer *t) {
+    Context *context = get_context();
+    AST_Node_Expression *expr = Arena_alloc(&context->ast_arena, sizeof(AST_Node_Expression));
+    expr->kind = AST_EXPRESSION;
+    expr->sub_expression = NULL;
+
     Token token = get_next_token(t);
 
     if (token.kind == TK_Ident) {
@@ -102,19 +106,34 @@ AST_Node *parse_expression(Tokenizer *t) {
         Token next = get_next_token(t);
         if (next.kind == '(') {
             // were calling a function!
+            AST_Node_Call_Function *call = Arena_alloc(&context->ast_arena, sizeof(AST_Node_Call_Function));
+            call->kind = AST_CALL_FUNCTION;
+            call->function_name = arena_SV_dup(&context->string_arena, token.text);
+            call->arguments = parse_argument(t);
 
-            AST_Node_Argument *args = parse_argument(t);
             if (!expect_next_token(t, ')', NULL)) {
+                // this assert is real.
                 assert(False && "parse argument should put us in the right place");
             }
 
-            assert(False && "TODO: handle this");
+            Token semi = get_next_token(t);
+
+            if (semi.kind != ';') {
+                // error, we dont know how to do more than 1 thing...
+                assert(False && "TODO: figure out error reporting");
+            }
+
+            // end of expression
+            expr->sub_expression = (AST_Node*) call;
+            return expr;
         }
 
         assert(False && "TODO: figure out error reporting here");
     }
 
-
+    // this could happen with the following line.
+    // -47;
+    // which might be fine? just make it possible.
     assert(False && "TODO: parse statement, non ident");
 }
 
@@ -149,7 +168,7 @@ int main(int argc, char const *argv[]) {
 
     int result = 0;
 
-    AST_Node_Array nodes = {0};
+    AST_Node_ptr_Array nodes = {0};
 
 
     Tokenizer tokenizer = new_tokenizer(file);
@@ -169,6 +188,7 @@ int main(int argc, char const *argv[]) {
             // start building AST, must be a const assignment for now
             Context *context = get_context();
             AST_Node_Const_Assignment *assignment = Arena_alloc(&context->ast_arena, sizeof(AST_Node_Const_Assignment));
+            assignment->kind = AST_CONST_ASSIGNMENT;
             assignment->name = arena_SV_dup(&context->string_arena, token.text);
 
             // TODO fprintf, turn into 'report_expected'
@@ -205,6 +225,7 @@ int main(int argc, char const *argv[]) {
             }
 
             AST_Node_Function func = {0};
+            func.kind = AST_FUNCTION;
 
             // now parse statements until '}'
             while (True) {
@@ -212,25 +233,26 @@ int main(int argc, char const *argv[]) {
 
                 // end of function
                 if (token.kind == '}') {
+                    // skip the '}'
                     get_next_token(t);
                     break;
                 }
 
-                AST_Node *thing = parse_expression(t);
-                assert(False && "TODO: use the result");
-
-                fprintf(stderr, "%s:%ld: unexpected token: |"SV_Fmt"|\n", filename, t->line_num, SV_Arg(token.text));
-                return_defer(1);
+                AST_Node_Expression *thing = parse_expression(t);
+                arena_da_append(&context->ast_arena, &func.expressions, *thing);
             }
 
+            // do we allow semi after functions? and in what context?
+            /*
+                Token could_be_semi = peek_next_token(t);
+                if (could_be_semi.kind == ';') {
+                    // skip it.
+                    get_next_token(t);
+                }
+            */
 
             assignment->function = func;
-
-            AST_Node new_node = {0};
-            new_node.kind = AST_CONST_ASSIGNMENT;
-            new_node.rest = assignment;
-
-            arena_da_append(&context->ast_arena, &nodes, new_node);
+            arena_da_append(&context->ast_arena, &nodes, (AST_Node*) assignment);
             continue;
         }
 
