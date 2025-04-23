@@ -201,17 +201,11 @@ void print_node(AST_Node *node, s64 indent) {
 }
 
 
-#define return_defer(res) do { result = res; goto defer; } while(0)
-
-void usage(const char *prog_name) {
-    printf("USAGE: %s file\n", prog_name);
-}
-
 int main(int argc, char const *argv[]) {
     const char *program_name = argv[0];
     if (argc != 2) {
         fprintf(stderr, "No input file was provided\n");
-        usage(program_name);
+        printf("USAGE: %s file\n", program_name);
         exit(1);
     }
 
@@ -229,6 +223,7 @@ int main(int argc, char const *argv[]) {
     memset(&context->ast_arena,    0, sizeof(Arena));
 
     int result = 0;
+    #define return_defer(res) do { result = res; goto defer; } while(0)
 
     AST_Node_ptr_Array nodes = {0};
 
