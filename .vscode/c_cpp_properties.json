@@ -9,7 +9,7 @@
         "${workspaceFolder}/Source/**",
         "/usr/lib/llvm-18/lib/clang/18/include/**"
       ],
-      "defines": ["STRING_VIEW_IMPLEMENTATION", "ARENA_IMPLEMENTATION", "CONTEXT_IMPLEMENTATION"],
+      "defines": ["STRING_VIEW_IMPLEMENTATION", "ARENA_IMPLEMENTATION", "CONTEXT_IMPLEMENTATION", "STRING_BUILDER_IMPLEMENTATION"],
       "cStandard": "c23",
       "browse": {
         "path": [

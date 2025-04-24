@@ -4,9 +4,14 @@
    Wow
  */
 
-foo :: () {}
-bar :: () {}
+foo :: () {
+    printf("foo\n");
+}
+bar :: () {
+    printf("bar\n");
+}
 
 main :: () {
-    print("Hello Lanthi");
+    foo(); bar();
+    printf("Hello Lanthi\n");
 }

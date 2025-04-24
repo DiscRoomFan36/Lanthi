@@ -10,8 +10,8 @@ BUILD   := ./Build
 all: clean $(BUILD)/main
 
 
-$(BUILD)/main: $(BUILD)/main.o $(BUILD)/tokenizer.o $(BUILD)/AST.o $(BUILD)/String_View.o $(BUILD)/arena.o $(BUILD)/context.o          | build
-	$(CC) $(CFLAGS) -o $(BUILD)/main   $(BUILD)/main.o $(BUILD)/tokenizer.o $(BUILD)/AST.o $(BUILD)/String_View.o $(BUILD)/arena.o $(BUILD)/context.o
+$(BUILD)/main: $(BUILD)/main.o $(BUILD)/tokenizer.o $(BUILD)/AST.o $(BUILD)/String_View.o $(BUILD)/arena.o $(BUILD)/context.o $(BUILD)/String_Builder.o          | build
+	$(CC) $(CFLAGS) -o $(BUILD)/main   $(BUILD)/main.o $(BUILD)/tokenizer.o $(BUILD)/AST.o $(BUILD)/String_View.o $(BUILD)/arena.o $(BUILD)/context.o $(BUILD)/String_Builder.o
 
 
 # ------------------ *.o's ------------------
@@ -37,6 +37,8 @@ $(BUILD)/arena.o: $(SOURCE)/arena.h                                      | build
 $(BUILD)/context.o: $(SOURCE)/context.h                                      | build
 	$(CC) $(CFLAGS) -x c -DCONTEXT_IMPLEMENTATION -c -o $(BUILD)/context.o $(SOURCE)/context.h
 
+$(BUILD)/String_Builder.o: $(SOURCE)/String_Builder.h                          | build
+	$(CC) $(CFLAGS) -x c -DSTRING_BUILDER_IMPLEMENTATION -c -o $(BUILD)/String_Builder.o $(SOURCE)/String_Builder.h
 
 
 build:
