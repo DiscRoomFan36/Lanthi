@@ -1,0 +1,23 @@
+
+------- Easy Stuff -------
+
+Add Temporary storage to the context and use it more.
+
+Make a reporting module. stop just asserting everywhere.
+
+Change how the AST works, make everything an expression (i know what i mean)
+
+make the compiling more recursive.
+make printing more recursive
+
+Use a string builder to make the output file. so we can do more things in one pass.
+
+
+
+------- For the Future -------
+
+Add a type system (another step in the chain.)
+
+Add an IR thats not just C (another step in the chain.)
+
+make a preload file. (to maybe just define printf)
