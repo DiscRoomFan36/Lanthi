@@ -10,8 +10,8 @@ BUILD   := ./Build
 all: clean $(BUILD)/main
 
 
-$(BUILD)/main: $(BUILD)/main.o $(BUILD)/tokenizer.o $(BUILD)/AST.o $(BUILD)/String_View.o $(BUILD)/arena.o $(BUILD)/context.o $(BUILD)/String_Builder.o          | build
-	$(CC) $(CFLAGS) -o $(BUILD)/main   $(BUILD)/main.o $(BUILD)/tokenizer.o $(BUILD)/AST.o $(BUILD)/String_View.o $(BUILD)/arena.o $(BUILD)/context.o $(BUILD)/String_Builder.o
+$(BUILD)/main: $(BUILD)/main.o $(BUILD)/tokenizer.o $(BUILD)/AST.o $(BUILD)/Compile.o $(BUILD)/String_View.o $(BUILD)/arena.o $(BUILD)/context.o          | build
+	$(CC) $(CFLAGS) -o $(BUILD)/main   $(BUILD)/main.o $(BUILD)/tokenizer.o $(BUILD)/AST.o $(BUILD)/Compile.o $(BUILD)/String_View.o $(BUILD)/arena.o $(BUILD)/context.o
 
 
 # ------------------ *.o's ------------------
@@ -25,6 +25,9 @@ $(BUILD)/tokenizer.o: $(SOURCE)/tokenizer.c                              | build
 $(BUILD)/AST.o: $(SOURCE)/AST.c                              | build
 	$(CC) $(CFLAGS) -c -o $(BUILD)/AST.o $(SOURCE)/AST.c
 
+$(BUILD)/Compile.o: $(SOURCE)/Compile.c                              | build
+	$(CC) $(CFLAGS) -c -o $(BUILD)/Compile.o $(SOURCE)/Compile.c
+
 
 # ------------------ single header files ------------------
 
@@ -37,8 +40,6 @@ $(BUILD)/arena.o: $(SOURCE)/arena.h                                      | build
 $(BUILD)/context.o: $(SOURCE)/context.h                                      | build
 	$(CC) $(CFLAGS) -x c -DCONTEXT_IMPLEMENTATION -c -o $(BUILD)/context.o $(SOURCE)/context.h
 
-$(BUILD)/String_Builder.o: $(SOURCE)/String_Builder.h                          | build
-	$(CC) $(CFLAGS) -x c -DSTRING_BUILDER_IMPLEMENTATION -c -o $(BUILD)/String_Builder.o $(SOURCE)/String_Builder.h
 
 
 build:

@@ -12,6 +12,7 @@
 
 #include "tokenizer.h"
 #include "AST.h"
+#include "Compile.h"
 
 
 SV read_entire_file(const char *filename) {
@@ -55,14 +56,17 @@ int main(int argc, char const *argv[]) {
         exit(1);
     }
 
+
     Context *context = get_context();
     // memset these to 0, even though the context grantees this.
     // just to make sure we know what were doing.
     memset(&context->string_arena, 0, sizeof(Arena));
     memset(&context->ast_arena,    0, sizeof(Arena));
 
+
     Tokenizer tokenizer = new_tokenizer(filename, file);
     AST_Node_ptr_Array nodes = tokenizer_to_AST(&tokenizer);
+
 
     printf("finished converting into AST hurray!\n");
     printf("probably should do something with it...\n");
@@ -71,74 +75,10 @@ int main(int argc, char const *argv[]) {
         print_node(nodes.items[i], 0);
     }
 
-
-    #define OUTPUT_C_FILENAME "./output.c"
-
-    FILE *f = fopen(OUTPUT_C_FILENAME, "wb");
-    if (!f) {
-        perror("Cannot open "OUTPUT_C_FILENAME);
-        assert(False && "TODO figure out error reporting");
-    }
-
-
-    fprintf(f, "#include <stdio.h>\n");
-
-    // pre define all functions for C backend.
-    for (size_t i = 0; i < nodes.count; i++) {
-        AST_Node_Const_Assignment *node = nodes.items[i];
-        // assert that all the top nodes are const assignments. TODO
-        assert(node->kind == AST_CONST_ASSIGNMENT);
-
-        // assumes that all top const assignments are functions
-        // also assumes no duplicate names.
-        fprintf(f, "void "SV_Fmt"(void);\n", SV_Arg(node->name));
-
-        // at this point also recur deeper into the structures to find more functions.
-    }
-
-
-
-    for (size_t i = 0; i < nodes.count; i++) {
-        AST_Node_Const_Assignment *node = nodes.items[i];
-        // assert that all the top nodes are const assignments. TODO
-        assert(node->kind == AST_CONST_ASSIGNMENT);
-
-        // assumes that all top const assignments are functions
-        // also assumes no duplicate names.
-        fprintf(f, "void "SV_Fmt"(void) {\n", SV_Arg(node->name));
-
-        for (size_t j = 0; j < node->function.expressions.count; j++) {
-            AST_Node_Expression *expr = node->function.expressions.items[j];
-
-            AST_Node_Call_Function *call = expr->sub_expression;
-            // assume this is a function call.
-            assert(call->kind == AST_CALL_FUNCTION);
-
-            fprintf(f, "    "SV_Fmt"(", call->function_name);
-            for (size_t k = 0; k < call->arguments->args.count; k++) {
-                AST_Node_String_Lit *str_lit = call->arguments->args.items[k];
-                // assert the argument is a string lit
-                assert(str_lit->kind == AST_STRING_LIT);
-
-                if (k != 0) fprintf(f, ", ");
-                fprintf(f, SV_Fmt, SV_Arg(str_lit->literal));
-            }
-            fprintf(f, ");\n", call->function_name);
-        }
-
-        fprintf(f, "}\n");
-    }
-
-    fclose(f);
-
-
-    int res = system("gcc -o output "OUTPUT_C_FILENAME);
-    if (res) {
-        perror("error in compiling output");
-        assert(False && "TODO figure out error reporting");
-    }
-
+    printf("Start compiling file\n");
+    compile_ast(nodes, SV_from_C_Str("output"));
     printf("Successfully compiled file!\n");
+
 
     assert(context == get_context() && "Make sure the context is fine");
     Arena_free(&context->ast_arena);
