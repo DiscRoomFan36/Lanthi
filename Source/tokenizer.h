@@ -9,10 +9,13 @@
 typedef struct Tokenizer {
     // make this a SV? or is it easier like this.
     const char *filename;
+    // contains the original SV for error handling
+    SV original;
 
     SV parseing;
 
     s64 line_num;
+    s64 col_num;
 } Tokenizer;
 
 typedef enum TokenKind {

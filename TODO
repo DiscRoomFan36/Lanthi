@@ -1,9 +1,10 @@
 
 ------- Easy Stuff -------
 
-Add Temporary storage to the context and use it more.
+Add Temporary storage to the context and use it more. no SV free in the middle of some random function.
 
-Make a reporting module. stop just asserting everywhere.
+Add reporting to AST.c
+Add reporting to Compile.c
 
 Change how the AST works, make everything an expression (i know what i mean)
 
@@ -12,6 +13,7 @@ make printing more recursive
 
 Use a string builder to make the output file. so we can do more things in one pass.
 
+parse command line flags.
 
 
 ------- For the Future -------

@@ -40,12 +40,15 @@
 #define CONTEXT_H_
 
 
+#include "String_View.h"
 #include "arena.h"
 
 // Context for Lanthi Project
 typedef struct Lanthi_Context {
     Arena string_arena;
     Arena ast_arena;
+
+    SV file;
 } Context;
 
 

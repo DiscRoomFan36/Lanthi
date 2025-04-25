@@ -10,14 +10,17 @@ BUILD   := ./Build
 all: clean $(BUILD)/main
 
 
-$(BUILD)/main: $(BUILD)/main.o $(BUILD)/tokenizer.o $(BUILD)/AST.o $(BUILD)/Compile.o $(BUILD)/String_View.o $(BUILD)/arena.o $(BUILD)/context.o          | build
-	$(CC) $(CFLAGS) -o $(BUILD)/main   $(BUILD)/main.o $(BUILD)/tokenizer.o $(BUILD)/AST.o $(BUILD)/Compile.o $(BUILD)/String_View.o $(BUILD)/arena.o $(BUILD)/context.o
+$(BUILD)/main: $(BUILD)/main.o $(BUILD)/Report_Error.o $(BUILD)/tokenizer.o $(BUILD)/AST.o $(BUILD)/Compile.o $(BUILD)/String_View.o $(BUILD)/arena.o $(BUILD)/context.o          | build
+	$(CC) $(CFLAGS) -o $(BUILD)/main   $(BUILD)/main.o $(BUILD)/Report_Error.o $(BUILD)/tokenizer.o $(BUILD)/AST.o $(BUILD)/Compile.o $(BUILD)/String_View.o $(BUILD)/arena.o $(BUILD)/context.o
 
 
 # ------------------ *.o's ------------------
 
 $(BUILD)/main.o: $(SOURCE)/main.c                                        | build
 	$(CC) $(CFLAGS) -c -o $(BUILD)/main.o $(SOURCE)/main.c
+
+$(BUILD)/Report_Error.o: $(SOURCE)/Report_Error.c                              | build
+	$(CC) $(CFLAGS) -c -o $(BUILD)/Report_Error.o $(SOURCE)/Report_Error.c
 
 $(BUILD)/tokenizer.o: $(SOURCE)/tokenizer.c                              | build
 	$(CC) $(CFLAGS) -c -o $(BUILD)/tokenizer.o $(SOURCE)/tokenizer.c
