@@ -75,9 +75,7 @@ int main(int argc, char const *argv[]) {
     printf("finished converting into AST hurray!\n");
     printf("probably should do something with it...\n");
 
-    for (s64 i = 0; i < nodes.count; i++) {
-        print_node(nodes.items[i], 0);
-    }
+    print_program(nodes);
 
     printf("--------- Start compiling file ---------\n");
     compile_ast(nodes, SV_from_C_Str("output"));

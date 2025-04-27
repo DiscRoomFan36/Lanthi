@@ -51,4 +51,6 @@ Token get_next_token(Tokenizer *t);
 bool32 expect_next_token(Tokenizer *t, TokenKind expect, Token *out_token);
 
 
+const char *token_to_name(Token token);
+
 #endif // TOKENIZER_H_

@@ -58,11 +58,6 @@ Tokenizer new_tokenizer(const char *filename, SV file) {
     return result;
 }
 
-// returns the current line, everything before the current token, up to the next newline, (newline omitted)
-local SV get_current_line(Tokenizer *t) {
-    return get_single_line(t->original, t->parseing.data - t->original.data);
-}
-
 // advance the parser by 'count' characters, also dose line num counting and stuff
 local inline void advance(Tokenizer *t, s64 count) {
     assert(t->parseing.size >= count); // dont do anything stupid!
@@ -125,9 +120,7 @@ local void chop_whitespace(Tokenizer *t) {
 
             s64 index = find_index_of(forward, multiline_end);
             if (index == -1) {
-                SV cur_line = get_current_line(t);
                 report_Tokenizer_error(t,
-                    cur_line,
                     "Unexpected EOF when tokenizing multiline comment.",
                     "Try adding a '*/' to close the multiline comment, note that multiple levels of /**/ are currently not supported.");
             }
@@ -169,11 +162,7 @@ Token peek_next_token(Tokenizer *t) {
 
             { // do error checks
                 if (index == -1) {
-                    // we have a problem, decide the better error message
-                    SV cur_line = get_current_line(t);
-                    // else report that we hit EOF.
                     report_Tokenizer_error(t,
-                        cur_line,
                         "Missing closeing quote when trying to parse 'String Literal'",
                         "Try adding '\"' to close a String Literal, be carful to make sure you didn't escape the '\"' character with the '\\' character");
                 }
@@ -181,10 +170,7 @@ Token peek_next_token(Tokenizer *t) {
                 s64 new_line_index = find_index_of_char(thing, '\n');
                 if (new_line_index != -1 && new_line_index < index) {
                     // we hit a newline before the next '"' character, not multiline strings
-                    SV cur_line = get_current_line(t);
-                    // copy-pasta this error.
                     report_Tokenizer_error(t,
-                        cur_line,
                         "Missing closeing quote when trying to parse 'String Literal', (String Literals cannot currently cross new line boundaries)",
                         "Try adding '\"' to close a String Literal, be carful to make sure you didn't escape the '\"' character with the '\\' character");
                 }
@@ -233,5 +219,23 @@ bool32 expect_next_token(Tokenizer *t, TokenKind expect, Token *out_token) {
     Token token = get_next_token(t);
     if (out_token) { *out_token = token; }
     return token.kind == expect;
+}
+
+
+const char *token_to_name(Token token) {
+    switch (token.kind) {
+        case TK_Eof:        return "EOF";
+        case TK_Ident:      return "Ident";
+        case TK_String_Lit: return "String Literal";
+
+        case TK_Colon:      return "Colon";
+        case TK_SemiColon:  return "Semi Colon";
+        case TK_OpenParen:  return "Open Paren";
+        case TK_CloseParen: return "Close Paren";
+        case TK_OpenCurly:  return "Open Curly";
+        case TK_CloseCurly: return "Close Curly";
+
+        default:            return "(Unknown Token)";
+    }
 }
 
