@@ -45,7 +45,7 @@ void cleanup_and_exit(int status) {
 }
 
 
-void report_tokenizer_error(Tokenizer *t, SV line_in_question, const char *reason, const char *maybe_help_text) {
+void report_Tokenizer_error(Tokenizer *t, SV line_in_question, const char *reason, const char *maybe_help_text) {
     // report the error
     print_file_and_line(stderr, t->filename, t->line_num, t->col_num);
     fprintf(stderr, " "ANSI_COLOR_RED"Tokenizer Error:"ANSI_COLOR_RESET" %s\n", reason);

@@ -52,6 +52,9 @@ s64 find_index_of_char(SV s, char c);
 // needle must have size > 0
 s64 find_index_of(SV s, SV needle);
 
+// finds the line at index, and returns a SV of the line, strips, '\n'
+SV get_single_line(SV s, s64 index);
+
 // TODO more functions
 
 #endif // STRING_VIEW_H_
@@ -98,6 +101,7 @@ SV SV_dup(SV s) {
     return result;
 }
 
+
 void SV_free(SV *s) {
     if (s->data) { free(s->data); }
     s->data = NULL;
@@ -135,6 +139,7 @@ bool32 SV_contains_char(SV s, char c) {
     return False;
 }
 
+
 // TODO: simd? or dose that happen automagically?
 s64 find_index_of_char(SV s, char c) {
     for (s64 i = 0; i < s.size; i++) {
@@ -171,6 +176,25 @@ s64 find_index_of(SV s, SV needle) {
     }
 
     return -1;
+}
+
+
+SV get_single_line(SV s, s64 i) {
+    SV result = {.data = s.data + i, .size = s.size - i};
+
+    s64 index = find_index_of_char(result, '\n');
+
+    // clamp the length to the far newline
+    if (index != -1) { result.size = index; }
+
+    // go back until newline before result.data,
+    // and make sure it doesn't go out of bounds
+    while (result.data != s.data && result.data[-1] != '\n') {
+        result.data -= 1;
+        result.size += 1;
+    }
+
+    return result;
 }
 
 

@@ -7,9 +7,10 @@
 
 void cleanup_and_exit(int status);
 
-// maybe add a help string?
-void report_tokenizer_error(Tokenizer *t, SV line_in_question, const char *reason, const char *maybe_help_text);
+void report_Tokenizer_error(Tokenizer *t, SV line_in_question, const char *reason, const char *maybe_help_text);
 
+// TODO the ast must have a way to get good error info, maybe
+// void report_AST_error(Tokenizer *t, SV line_in_question, const char *reason, const char *maybe_help_text);
 
 
 #endif // REPORT_ERROR_H_
