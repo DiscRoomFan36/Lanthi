@@ -9,7 +9,7 @@
 
 noreturn void cleanup_and_exit(int status);
 
-noreturn void report_Tokenizer_error(Tokenizer *t, const char *reason, const char *maybe_help_text);
+noreturn void report_Tokenizer_error(Tokenizer *t, SV the_line_in_question, const char *reason, const char *maybe_help_text);
 
 // TODO the ast must have a way to get good error info, maybe
 noreturn void report_AST_error(Tokenizer *t, const char *reason, const char *maybe_help_text);

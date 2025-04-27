@@ -24,6 +24,16 @@
 // }
 
 
+// TODO make all the 'new' functions
+// AST_Node_Const_Assignment
+
+// TODO should this accept a node? so we can handle array assigns, <- later
+local AST_Node *parse_declaration_or_assignment(Tokenizer *t, SV name_to_assign_to) {
+    (void) t;
+    (void) name_to_assign_to;
+
+    assert(False && "TODO: 'parse_declaration_or_assignment'");
+}
 
 
 local AST_Node *parse_expression(Tokenizer *t) {
@@ -31,11 +41,16 @@ local AST_Node *parse_expression(Tokenizer *t) {
 
     if (token.kind == TK_Ident) {
 
-        get_next_token(t);
+        take_token(t); // go past the ident token
 
         Token next = peek_next_token(t);
 
-        report_AST_unexpected_token(t, "parse expression when parseing token", next, "TODO tell them something like 'expected colon or something'");
+        if (next.kind == ':') {
+            // ok, its a definition, hand the job to someone else.
+            return parse_declaration_or_assignment(t, token.text);
+        }
+
+        report_AST_unexpected_token(t, "parse expression when parseing token", next, "we only handle ':' after Ident for now");
     }
 
 

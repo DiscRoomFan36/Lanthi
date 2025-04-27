@@ -1,5 +1,6 @@
 
 #include <assert.h>
+#include <string.h> // for 'memmove'
 
 #include "Report_Error.h"
 #include "tokenizer.h"
@@ -36,6 +37,11 @@ local inline bool32 is_ident_char(char c) {
 }
 
 
+
+local SV get_tokenizer_current_line(Tokenizer *t) {
+    return get_single_line(t->original, t->parseing.data - t->original.data);
+}
+
 // constant, do not touch
 const SV multiline_end = {
     .data = "*/",
@@ -43,23 +49,9 @@ const SV multiline_end = {
 };
 
 
-// make a tokenizer
-Tokenizer new_tokenizer(const char *filename, SV file) {
-    Tokenizer result = {
-        .filename = filename,
-        .original = file,
-
-        .parseing = file,
-
-        .line_num = 1,
-        .col_num = 1,
-    };
-
-    return result;
-}
 
 // advance the parser by 'count' characters, also dose line num counting and stuff
-local inline void advance(Tokenizer *t, s64 count) {
+local inline void tk_advance(Tokenizer *t, s64 count) {
     assert(t->parseing.size >= count); // dont do anything stupid!
 
     // count white spaces
@@ -87,7 +79,7 @@ local void chop_whitespace(Tokenizer *t) {
     while (True) {
         // advance cursor until non whitespace
         while (t->parseing.size > 0 && is_space(t->parseing.data[0])) {
-            advance(t, 1);
+            tk_advance(t, 1);
         }
 
         // return on eof
@@ -99,15 +91,15 @@ local void chop_whitespace(Tokenizer *t) {
         // comments need 2 char's
         if (t->parseing.data[0] == '/' && t->parseing.data[1] == '/') {
             // its a line comment
-            advance(t, 2);
+            tk_advance(t, 2);
             s64 index = find_index_of_char(t->parseing, '\n');
             if (index == -1) {
-                advance(t, t->parseing.size);
+                tk_advance(t, t->parseing.size);
                 return;
             }
 
             // advance past the line.
-            advance(t, index + 1);
+            tk_advance(t, index + 1);
             continue;
         }
 
@@ -120,12 +112,14 @@ local void chop_whitespace(Tokenizer *t) {
 
             s64 index = find_index_of(forward, multiline_end);
             if (index == -1) {
+                SV current_line = get_tokenizer_current_line(t);
                 report_Tokenizer_error(t,
+                    current_line,
                     "Unexpected EOF when tokenizing multiline comment.",
                     "Try adding a '*/' to close the multiline comment, note that multiple levels of /**/ are currently not supported.");
             }
 
-            advance(t, index + multiline_end.size + 2);
+            tk_advance(t, index + multiline_end.size + 2);
             continue;
         }
 
@@ -134,12 +128,20 @@ local void chop_whitespace(Tokenizer *t) {
     }
 }
 
-Token peek_next_token(Tokenizer *t) {
+
+// peeks the next token, dose not advance the t->parseing pointer past the next token, only skips whitespace
+local Token get_next_token(Tokenizer *t) {
     assert(t->parseing.size >= 0);
 
     chop_whitespace(t);
 
-    if (t->parseing.size == 0) return (Token) { .kind = TK_Eof, .text = {0} };
+    Token result = { .line_number = t->line_num, .col_number = t->col_num };
+
+    if (t->parseing.size == 0) {
+        result.kind = TK_Eof;
+        result.text = (SV){0};
+        return result;
+    }
 
     if (is_alpha(t->parseing.data[0])) {
         SV ident = {.data = t->parseing.data, .size = 1};
@@ -147,7 +149,10 @@ Token peek_next_token(Tokenizer *t) {
             if (!is_ident_char(t->parseing.data[i])) break;
             ident.size += 1;
         }
-        return (Token){ .kind = TK_Ident, .text = ident };
+
+        result.kind = TK_Ident;
+        result.text = ident;
+        return result;
     }
 
     if (is_digit(t->parseing.data[0])) {
@@ -162,7 +167,9 @@ Token peek_next_token(Tokenizer *t) {
 
             { // do error checks
                 if (index == -1) {
+                    SV current_line = get_tokenizer_current_line(t);
                     report_Tokenizer_error(t,
+                        current_line,
                         "Missing closeing quote when trying to parse 'String Literal'",
                         "Try adding '\"' to close a String Literal, be carful to make sure you didn't escape the '\"' character with the '\\' character");
                 }
@@ -170,7 +177,9 @@ Token peek_next_token(Tokenizer *t) {
                 s64 new_line_index = find_index_of_char(thing, '\n');
                 if (new_line_index != -1 && new_line_index < index) {
                     // we hit a newline before the next '"' character, not multiline strings
+                    SV current_line = get_tokenizer_current_line(t);
                     report_Tokenizer_error(t,
+                        current_line,
                         "Missing closeing quote when trying to parse 'String Literal', (String Literals cannot currently cross new line boundaries)",
                         "Try adding '\"' to close a String Literal, be carful to make sure you didn't escape the '\"' character with the '\\' character");
                 }
@@ -189,36 +198,92 @@ Token peek_next_token(Tokenizer *t) {
             }
         }
 
-        // TODO: dose this insert the special chars?
-        return (Token) {
-            .kind = TK_String_Lit,
-            .text = {
-                .data = t->parseing.data,
-                .size = t->parseing.size - thing.size,
-            },
+        // TODO: dose this insert the special chars? no
+        result.kind = TK_String_Lit;
+        result.text = (SV) {
+            .data = t->parseing.data,
+            .size = t->parseing.size - thing.size,
         };
+        return result;
     }
 
     // just return the single char
-    Token next_token = {
-        .kind = t->parseing.data[0],
-        .text = { .data = t->parseing.data, .size = 1 },
-    };
-    return next_token;
+    result.kind = t->parseing.data[0];
+    result.text = (SV){ .data = t->parseing.data, .size = 1 };
+    return result;
 }
 
-Token get_next_token(Tokenizer *t) {
-    assert(t->parseing.size >= 0);
-    Token token = peek_next_token(t);
-    advance(t, token.text.size);
-    return token;
-}
+local void next_token_into_peek_buffer(Tokenizer *t) {
+    assert(t->current_peek_count < MAX_PEEK_COUNT && "Cannot get more than 'MAX_PEEK_COUNT' peeks ahead");
 
-bool32 expect_next_token(Tokenizer *t, TokenKind expect, Token *out_token) {
-    assert(t->parseing.size >= 0);
+    if (t->current_peek_count > 0) {
+        Token last_token = t->peek_buffer[t->current_peek_count-1];
+        assert(last_token.kind != TK_Eof && "Cannot get next token when the last token currently is EOF");
+    }
+
+    // get the next token from peek.
     Token token = get_next_token(t);
-    if (out_token) { *out_token = token; }
-    return token.kind == expect;
+    // advance past the token
+    tk_advance(t, token.text.size);
+
+    // put the token into the peek buffer
+    t->peek_buffer[t->current_peek_count] = token;
+    // inc the buffer
+    t->current_peek_count += 1;
+}
+
+
+// ----------------------
+// User faceing functions
+// ----------------------
+
+
+Tokenizer new_tokenizer(const char *filename, SV file) {
+    Tokenizer result = {
+        .filename = filename,
+        .original = file,
+
+        .parseing = file,
+
+        .line_num = 1,
+        .col_num = 1,
+
+        .current_peek_count = 0,
+        // init this to zero, even though we probably dont have to.
+        .peek_buffer = {0},
+    };
+
+    return result;
+}
+
+
+Token peek_next_token(Tokenizer *t) { return peek_token(t, 0); }
+
+Token peek_token(Tokenizer *t, s64 peek_index) {
+    // generate until we have enough of a buffer
+    while (peek_index >= t->current_peek_count) {
+        next_token_into_peek_buffer(t);
+    }
+
+    return t->peek_buffer[peek_index];
+}
+
+Token take_token(Tokenizer *t) { return take_tokens(t, 1); }
+
+Token take_tokens(Tokenizer *t, s64 count) {
+    assert(count > 0 && "Cannot take 0 tokens, maybe we could, but what would we return?");
+    assert(count < MAX_PEEK_COUNT && "Cannot take more than the max buffer count, why would you do this anyway? how do you know where your going? we could support this...");
+
+    // get the token
+    Token token = peek_token(t, count-1);
+
+    // shift the buffer over, might be expensive
+    // TODO circular buffer?
+    t->current_peek_count -= count;
+    memmove(t->peek_buffer, &t->peek_buffer[count], t->current_peek_count * sizeof(Token));
+
+    // return the token
+    return token;
 }
 
 
@@ -238,4 +303,12 @@ const char *token_to_name(Token token) {
         default:            return "(Unknown Token)";
     }
 }
+
+
+// TODO is this useful? maybe for other modules...
+// local SV get_line_around_token(Tokenizer *t, Token token) {
+//     s64 index = token.text.data - t->original.data;
+//     assert(0 <= index && index < t->original.size);
+//     return get_single_line(t->original, index);
+// }
 
