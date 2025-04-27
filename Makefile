@@ -49,4 +49,4 @@ build:
 	mkdir -p $(BUILD)
 
 clean:
-	rm -rf $(BUILD)
+	rm -rf $(BUILD) ./lanthi_build
