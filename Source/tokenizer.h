@@ -12,16 +12,16 @@
 
 
 typedef enum TokenKind {
-    TK_Eof = 0,
-    TK_Ident,
-    TK_String_Lit,
 
-    TK_Colon      = ':',
-    TK_SemiColon  = ';',
-    TK_OpenParen  = '(',
-    TK_CloseParen = ')',
-    TK_OpenCurly  = '{',
-    TK_CloseCurly = '}',
+    // The ASCII types are not referenced by a name, just use ':' or something
+
+    // TODO put keywords here, 
+
+    TK_Ident = 256,
+    TK_String_Lit = 257,
+
+    TK_Eof = 999,
+    TK_ERROR = 1000,
 } TokenKind;
 
 typedef struct Token {
@@ -31,6 +31,13 @@ typedef struct Token {
 
     s64 line_number;
     s64 col_number;
+
+    // https://www.youtube.com/watch?v=MnctEW1oL-E
+    // union {
+    //     SV name;
+    //     u64 integer_value;
+    // };
+
 } Token;
 
 
@@ -79,5 +86,8 @@ Token take_tokens(Tokenizer *t, s64 count);
 
 
 const char *token_to_name(Token token);
+
+// for error reporting.
+SV get_line_around_token(Tokenizer *t, Token token);
 
 #endif // TOKENIZER_H_

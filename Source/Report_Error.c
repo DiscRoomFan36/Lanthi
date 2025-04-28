@@ -97,25 +97,18 @@ noreturn void report_AST_error(Tokenizer *t, const char *reason, const char *may
 
 
 noreturn void report_AST_unexpected_token(Tokenizer *t, const char *where_its_currently_parseing, Token unexpected, const char *maybe_help_text) {
-    (void) t;
-    (void) where_its_currently_parseing;
-    (void) unexpected;
-    (void) maybe_help_text;
+    print_file_and_line(stderr, t->filename, unexpected.line_number, unexpected.col_number);
+    fprintf(stderr, " "ANSI_COLOR_RED"AST Error:"ANSI_COLOR_RESET" Unexpected Token in %s, got '%s' |"SV_Fmt"|\n", where_its_currently_parseing, token_to_name(unexpected), SV_Arg(unexpected.text));
 
-    assert(False && "TODO: figure this out, the tokenizer has changed");
+    SV line_in_question = get_line_around_token(t, unexpected);
 
-    // print_file_and_line(stderr, t->filename, t->line_num, t->col_num);
-    // fprintf(stderr, " "ANSI_COLOR_RED"AST Error:"ANSI_COLOR_RESET" Unexpected Token in %s, got '%s' ("SV_Fmt")\n", where_its_currently_parseing, token_to_name(unexpected), SV_Arg(unexpected.text));
+    // TODO maybe highlight bad char in question?
+    fprintf(stderr, "%4ld |"SV_Fmt"\n", unexpected.line_number, SV_Arg(line_in_question));
+    fprintf(stderr, "     |%*s\n", (int)unexpected.col_number, "^");
 
-    // SV line_in_question = get_tokenizer_current_line(t);
+    if (maybe_help_text) {
+        fprintf(stderr, ANSI_COLOR_CYAN"note:"ANSI_COLOR_RESET" %s\n", maybe_help_text);
+    }
 
-    // // TODO maybe highlight bad char in question?
-    // fprintf(stderr, "%4ld |"SV_Fmt"\n", t->line_num, SV_Arg(line_in_question));
-    // fprintf(stderr, "     |%*s\n", (int)t->col_num, "^");
-
-    // if (maybe_help_text) {
-    //     fprintf(stderr, ANSI_COLOR_CYAN"note:"ANSI_COLOR_RESET" %s\n", maybe_help_text);
-    // }
-
-    // cleanup_and_exit(1);
+    cleanup_and_exit(1);
 }

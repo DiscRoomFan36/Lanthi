@@ -37,6 +37,17 @@ local inline bool32 is_ident_char(char c) {
 }
 
 
+local inline Token default_token(void) {
+    Token token = {
+        .kind = TK_ERROR,
+        .text = {0},
+        .line_number = 0,
+        .col_number = 0,
+    };
+    return token;
+}
+
+
 
 local SV get_tokenizer_current_line(Tokenizer *t) {
     return get_single_line(t->original, t->parseing.data - t->original.data);
@@ -135,7 +146,9 @@ local Token get_next_token(Tokenizer *t) {
 
     chop_whitespace(t);
 
-    Token result = { .line_number = t->line_num, .col_number = t->col_num };
+    Token result = default_token();
+    result.line_number = t->line_num;
+    result.col_number = t->col_num;
 
     if (t->parseing.size == 0) {
         result.kind = TK_Eof;
@@ -288,17 +301,17 @@ Token take_tokens(Tokenizer *t, s64 count) {
 
 
 const char *token_to_name(Token token) {
-    switch (token.kind) {
+    switch ((int)token.kind) {
         case TK_Eof:        return "EOF";
         case TK_Ident:      return "Ident";
         case TK_String_Lit: return "String Literal";
 
-        case TK_Colon:      return "Colon";
-        case TK_SemiColon:  return "Semi Colon";
-        case TK_OpenParen:  return "Open Paren";
-        case TK_CloseParen: return "Close Paren";
-        case TK_OpenCurly:  return "Open Curly";
-        case TK_CloseCurly: return "Close Curly";
+        case ':': return "Colon";
+        case ';': return "Semi Colon";
+        case '(': return "Open Paren";
+        case ')': return "Close Paren";
+        case '{': return "Open Curly";
+        case '}': return "Close Curly";
 
         default:            return "(Unknown Token)";
     }
@@ -306,9 +319,9 @@ const char *token_to_name(Token token) {
 
 
 // TODO is this useful? maybe for other modules...
-// local SV get_line_around_token(Tokenizer *t, Token token) {
-//     s64 index = token.text.data - t->original.data;
-//     assert(0 <= index && index < t->original.size);
-//     return get_single_line(t->original, index);
-// }
+SV get_line_around_token(Tokenizer *t, Token token) {
+    s64 index = token.text.data - t->original.data;
+    assert(0 <= index && index < t->original.size);
+    return get_single_line(t->original, index);
+}
 
