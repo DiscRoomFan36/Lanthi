@@ -19,21 +19,73 @@
 local s64 get_operator_precedence(Token token);
 local bool32 check_is_function_declaration(Tokenizer *t, s64 ahead);
 local AST_Node_Function *parse_function(Tokenizer *t);
+local AST_Node_ptr_Array parse_arguments(Tokenizer *t);
 local AST_Node *parse_expression(Tokenizer *t);
-
+local AST_Node *parse_subexpression(Tokenizer *t);
 
 
 
 // TODO put this somewhere smarter
-// local SV arena_SV_dup(Arena *a, SV s) {
-//     SV result;
-//     result.data = Arena_alloc(a, s.size);
-//     result.size = s.size;
+// TODO put this somewhere smarter
+// TODO put this somewhere smarter
+// TODO put this somewhere smarter
+// TODO put this somewhere smarter
+local SV arena_SV_dup(Arena *a, SV s) {
+    SV result;
+    result.data = Arena_alloc(a, s.size);
+    result.size = s.size;
 
-//     for (s64 i = 0; i < s.size; i++) result.data[i] = s.data[i];
+    for (s64 i = 0; i < s.size; i++) result.data[i] = s.data[i];
 
-//     return result;
-// }
+    return result;
+}
+
+
+// ------------------
+// new node functions
+// ------------------
+
+AST_Node_Ident *new_node_ident(Token ident_token) {
+    Context *context = get_context();
+
+    AST_Node_Ident *node = Arena_alloc(&context->ast_arena, sizeof(AST_Node_Ident));
+    node->kind = AST_IDENT;
+    node->ident = arena_SV_dup(&context->string_arena, ident_token.text);
+
+    return node;
+}
+
+AST_Node_Const_Assignment *new_node_decl(void) {
+    Context *context = get_context();
+
+    AST_Node_Const_Assignment *node = Arena_alloc(&context->ast_arena, sizeof(AST_Node_Const_Assignment));
+    node->kind = AST_CONST_ASSIGNMENT;
+    // we dont do any other setup here
+
+    return node;
+}
+
+AST_Node_Function *new_node_function(void) {
+    Context *context = get_context();
+
+    AST_Node_Function *node = Arena_calloc(&context->ast_arena, sizeof(AST_Node_Function));
+    node->kind = AST_FUNCTION;
+    // node->expressions = {0}; set to zero
+
+    return node;
+}
+
+AST_Node_Call_Function *new_node_call_function(void) {
+    Context *context = get_context();
+
+    AST_Node_Call_Function *node = Arena_calloc(&context->ast_arena, sizeof(AST_Node_Call_Function));
+    node->kind = AST_CALL_FUNCTION;
+    // node->left = Null;
+    // node->args = {0}; set to zero
+
+    return node;
+}
+
 
 
 // TODO do this parseing
@@ -119,7 +171,7 @@ local AST_Node_Function *parse_function(Tokenizer *t) {
     if (token.kind != '{') report_AST_error(t, "we currently do not handle function return values.", NULL);
 
     // setup expression parseing
-    take_tokens(t, 3);
+    take_token(t, 3);
 
     while (peek_next_token(t).kind != '}') {
         AST_Node *expr = parse_expression(t);
@@ -130,51 +182,138 @@ local AST_Node_Function *parse_function(Tokenizer *t) {
 }
 
 
-local AST_Node *parse_expression(Tokenizer *t) {
-    Context *context = get_context();
+local AST_Node_ptr_Array parse_arguments(Tokenizer *t) {
+    assert(False && "TODO");
+}
 
-    Token token = peek_token(t, 0);
+
+local AST_Node *parse_subexpression(Tokenizer *t) {
+    Token token = peek_next_token(t);
 
     if (token.kind == TK_Ident) {
-        Token next = peek_token(t, 1);
+        // check the next, it could be a function like...
+        take_next_token(t);
+        Token next = peek_next_token(t);
 
-        if (next.kind == ':') {
-            Token next_next_token = peek_token(t, 2);
-            if (next_next_token.kind == ':') {
+        if (next.kind == '(') {
+            // its a function call
 
-                // bool32 is_function_dec = check_is_function_declaration(t, 3);
+            AST_Node_Call_Function *call_func = new_node_call_function();
+            call_func->left = (AST_Node*) new_node_ident(token);
+            // call_func->args = {0};
 
-                AST_Node_Const_Assignment *assign = Arena_alloc(&context->ast_arena, sizeof(AST_Node_Const_Assignment));
 
-                // take the next tokens, to get parse_expression in the right place
-                take_tokens(t, 3);
+            AST_Node_ptr_Array args = parse_arguments(t);
+            call_func->args = args;
 
-                // TODO imdeietly
-                assign->kind = AST_CONST_ASSIGNMENT;
-                assign->name = token.text;
-                assign->expression = parse_expression(t);
-                return (AST_Node*) assign;
-            }
-
-            report_AST_error(t, "expected ':'", "we only handle :: for now");
-
-            // ok, its a definition, hand the job to someone else.
-            // return parse_declaration_or_assignment(t);
+            assert(peek_next_token(t).kind != '(' && "no double functions or what not. maybe make call function a recursive thing??? tree down to the right.");
+            return (AST_Node*) call_func;
         }
 
-        report_AST_unexpected_token(t, "parse expression when parseing token", next, "we only handle ':' after Ident for now");
+        // if were here, the node was just a token.
+        return (AST_Node*) new_node_ident(token);
     }
 
     if (token.kind == '(') {
-        bool32 is_function = check_is_function_declaration(t, 0);
+        // it might be a function.
+        if (check_is_function_declaration(t, 0)) {
+            // it must be a function
+            return (AST_Node*) parse_function(t);
+        }
 
-        if (is_function) { return (AST_Node*) parse_function(t); }
-
-        report_AST_error(t, "saw ( but it wasn't a function", "TODO parens better");
+        assert(False && "subexpr dose not parse '(' for now, maybe parse expression should handle this...");
     }
 
 
-    report_AST_unexpected_token(t, "parse expression", token, "expected an ident or something.");
+    report_AST_unexpected_token(t, "subexpression", token, NULL);
+}
+
+
+local AST_Node *parse_expression(Tokenizer *t) {
+    AST_Node *left = parse_subexpression(t);
+    assert(left != NULL && "i dont know whats happening");
+
+    // if the left was a function. we stop. no ';' after function
+    if (left->kind == AST_FUNCTION) {
+        if (peek_next_token(t).kind == ';') {
+            report_AST_unexpected_token(t, "parse expression after a function was parsed", peek_next_token(t), "no ';' after functions.");
+        }
+        return left;
+    }
+
+    Token token = take_next_token(t);
+
+    // if its ; its the end of the line.
+    if (token.kind == ';') return left;
+
+    if (token.kind == ':') {
+        // its a declaration.
+        // TODO parse more thoroughly
+        Token after_dec = peek_next_token(t);
+
+        assert(after_dec.kind == ':' && "we only handle const assign");
+        take_next_token(t);
+
+        AST_Node_Const_Assignment *decl = new_node_decl();
+        decl->left = left;
+
+        AST_Node *right = parse_expression(t);
+
+        assert(right != NULL && "must have a right side...");
+
+        decl->right = right;
+    }
+
+
+
+    assert(False && "TODO");
+
+    // Token token = peek_token(t, 0);
+
+    // if (token.kind == TK_Ident) {
+    //     Token next = peek_token(t, 1);
+
+    //     if (next.kind == ':') {
+    //         Token next_next_token = peek_token(t, 2);
+    //         if (next_next_token.kind == ':') {
+
+    //             // bool32 is_function_dec = check_is_function_declaration(t, 3);
+
+    //             AST_Node_Const_Assignment *assign = Arena_alloc(&context->ast_arena, sizeof(AST_Node_Const_Assignment));
+
+    //             // take the next tokens, to get parse_expression in the right place
+    //             take_token(t, 3);
+
+    //             // TODO imdeietly
+    //             // TODO imdeietly
+    //             // TODO imdeietly
+    //             // TODO imdeietly
+    //             // TODO imdeietly
+    //             assign->kind = AST_CONST_ASSIGNMENT;
+    //             assign->name = token.text;
+    //             assign->expression = parse_expression(t);
+    //             return (AST_Node*) assign;
+    //         }
+
+    //         report_AST_error(t, "expected ':'", "we only handle :: for now");
+
+    //         // ok, its a definition, hand the job to someone else.
+    //         // return parse_declaration_or_assignment(t);
+    //     }
+
+    //     report_AST_unexpected_token(t, "parse expression when parseing token", next, "we only handle ':' after Ident for now");
+    // }
+
+    // if (token.kind == '(') {
+    //     bool32 is_function = check_is_function_declaration(t, 0);
+
+    //     if (is_function) { return (AST_Node*) parse_function(t); }
+
+    //     report_AST_error(t, "saw ( but it wasn't a function", "TODO parens better");
+    // }
+
+
+    // report_AST_unexpected_token(t, "parse expression", token, "expected an ident or something.");
 }
 
 AST_Node_ptr_Array tokenizer_to_AST(Tokenizer *t) {

@@ -76,10 +76,10 @@ Token peek_token(Tokenizer *t, s64 peek_index);
 
 
 // take a token, and shift the peek buffer. works like a 'get_next_token'
-Token take_token(Tokenizer *t);
+Token take_next_token(Tokenizer *t);
 // takes count tokens, returns the last
 // returns the same as peeking the 'count-1' th token
-Token take_tokens(Tokenizer *t, s64 count);
+Token take_token(Tokenizer *t, s64 count);
 
 // TODO add take_and_expect back, would be easy, only when needed
 // bool32 take_and_expect(Tokenizer *t, TokenKind expect, Token *out_token);

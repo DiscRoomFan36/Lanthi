@@ -15,6 +15,8 @@
 
 typedef enum AST_Node_Kind {
     AST_NULL = 0,
+    AST_IDENT,
+
     AST_FUNCTION,
     AST_CALL_FUNCTION,
     AST_CONST_ASSIGNMENT,
@@ -34,6 +36,13 @@ typedef struct AST_Node_ptr_Array {
 } AST_Node_ptr_Array;
 
 
+typedef struct AST_Node_Ident {
+    AST_Node_Kind kind;
+    SV ident;
+    // do we want this? maybe for more error stuff.
+    // Token ident_token;
+} AST_Node_Ident;
+
 
 typedef struct AST_Node_Function {
     AST_Node_Kind kind;
@@ -52,17 +61,17 @@ typedef struct AST_Node_Const_Assignment {
     AST_Node_Kind kind;
 
     // the ident were assigning to, (TODO something about array indexing)
-    SV name;
+    AST_Node *left;
 
-    // the expression on the othe side, could be a function, or something else.
-    AST_Node *expression;
+    // the expression on the other side, could be a function, or something else.
+    AST_Node *right;
 } AST_Node_Const_Assignment;
 
 
 typedef struct AST_Node_Call_Function {
     AST_Node_Kind kind;
-    // just the name? really?
-    SV function_name;
+    // the thing to call.
+    AST_Node *left;
 
     AST_Node_ptr_Array args;
 } AST_Node_Call_Function;

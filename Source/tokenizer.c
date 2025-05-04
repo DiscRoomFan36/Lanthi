@@ -281,9 +281,9 @@ Token peek_token(Tokenizer *t, s64 peek_index) {
     return t->peek_buffer[peek_index];
 }
 
-Token take_token(Tokenizer *t) { return take_tokens(t, 1); }
+Token take_next_token(Tokenizer *t) { return take_token(t, 1); }
 
-Token take_tokens(Tokenizer *t, s64 count) {
+Token take_token(Tokenizer *t, s64 count) {
     assert(count > 0 && "Cannot take 0 tokens, maybe we could, but what would we return?");
     assert(count < MAX_PEEK_COUNT && "Cannot take more than the max buffer count, why would you do this anyway? how do you know where your going? we could support this...");
 
