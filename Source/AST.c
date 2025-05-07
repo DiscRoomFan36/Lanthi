@@ -55,6 +55,16 @@ AST_Node_Ident *new_node_ident(Token ident_token) {
     return node;
 }
 
+AST_Node_String_Lit *new_node_string_lit(Token string_lit_token) {
+    Context *context = get_context();
+
+    AST_Node_String_Lit *node = Arena_alloc(&context->ast_arena, sizeof(AST_Node_String_Lit));
+    node->kind = AST_STRING_LIT;
+    node->literal = arena_SV_dup(&context->string_arena, string_lit_token.text);
+
+    return node;
+}
+
 AST_Node_Const_Assignment *new_node_decl(void) {
     Context *context = get_context();
 
@@ -175,6 +185,10 @@ local AST_Node_Function *parse_function(Tokenizer *t) {
 
     while (peek_next_token(t).kind != '}') {
         AST_Node *expr = parse_expression(t);
+        if (peek_next_token(t).kind != ';') {
+            report_AST_error(t, "statement must end with ';'", "end lines with ';', TODO this might break functions in functions");
+        }
+        take_next_token(t);
         arena_da_append(&context->ast_arena, &func->expressions, expr);
     }
 
@@ -183,12 +197,36 @@ local AST_Node_Function *parse_function(Tokenizer *t) {
 
 
 local AST_Node_ptr_Array parse_arguments(Tokenizer *t) {
-    assert(False && "TODO");
+    Context *context = get_context();
+
+    AST_Node_ptr_Array results = {0};
+
+    assert(take_next_token(t).kind == '(' && "this is where i should be");
+
+    AST_Node *argument = parse_expression(t);
+    arena_da_append(&context->ast_arena, &results, argument);
+
+    Token token = take_next_token(t);
+
+    if (token.kind == ',') {
+        report_AST_unexpected_token(t, "parse arguments", token, "we dont currently handle multiple arguments");
+    }
+
+    if (token.kind != ')') {
+        report_AST_unexpected_token(t, "parse arguments", token, "must finish arguments with ')'");
+    }
+
+    return results;
 }
 
 
 local AST_Node *parse_subexpression(Tokenizer *t) {
     Token token = peek_next_token(t);
+
+    if (token.kind == TK_String_Lit) {
+        take_next_token(t);
+        return (AST_Node*) new_node_string_lit(token);
+    }
 
     if (token.kind == TK_Ident) {
         // check the next, it could be a function like...
@@ -241,12 +279,18 @@ local AST_Node *parse_expression(Tokenizer *t) {
         return left;
     }
 
-    Token token = take_next_token(t);
+    Token token = peek_next_token(t);
 
-    // if its ; its the end of the line.
+
+    // end of parse expression chars
     if (token.kind == ';') return left;
+    if (token.kind == ')') return left;
+    if (token.kind == ',') return left;
+    if (token.kind == ']') return left;
+    // if (token.kind == '') return left;
 
     if (token.kind == ':') {
+        take_next_token(t);
         // its a declaration.
         // TODO parse more thoroughly
         Token after_dec = peek_next_token(t);
@@ -265,8 +309,7 @@ local AST_Node *parse_expression(Tokenizer *t) {
     }
 
 
-
-    assert(False && "TODO");
+    report_AST_unexpected_token(t, "parse expression next character", token, NULL);
 
     // Token token = peek_token(t, 0);
 
