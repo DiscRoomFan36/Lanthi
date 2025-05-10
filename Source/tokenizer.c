@@ -61,6 +61,62 @@ const SV multiline_end = {
 
 
 
+// returns a SV that has advanced past the whitespace.
+local SV chop_programer_whitespace(Tokenizer *t, SV parseing) {
+    while (True) {
+        // advance cursor until non whitespace
+        while (parseing.size > 0 && is_space(parseing.data[0])) {
+            SV_advance(&parseing, 1);
+        }
+
+        // return on eof
+        if (parseing.size == 0) return parseing;
+
+        // check if there is enough room for a comment char
+        if (parseing.size < 2) return parseing;
+
+        if (parseing.data[0] == '/' && parseing.data[1] == '/') {
+            // its a line comment
+            SV_advance(&parseing, 2);
+            s64 index = find_index_of_char(parseing, '\n');
+
+            // ran into end of file.
+            if (index == -1) {
+                SV_advance(&parseing, parseing.size);
+                return parseing;
+            }
+
+            // advance past the line.
+            SV_advance(&parseing, index + 1);
+            continue;
+        }
+
+        if (parseing.data[0] == '/' && parseing.data[1] == '*') {
+            // is a multiline comment
+            // TODO support multiline layers.
+
+            // forward is for makeing the error thing a bit better
+            SV forward = SV_advanced(parseing, 2);
+
+            s64 index = find_index_of(forward, multiline_end);
+            if (index == -1) {
+                // this is the only reason why we have t as a parameter...
+                SV current_line = get_tokenizer_current_line(t);
+                report_Tokenizer_error(t,
+                    current_line,
+                    "Unexpected EOF when tokenizing multiline comment.",
+                    "Try adding a '*/' to close the multiline comment, note that multiple levels of /**/ are currently not supported.");
+            }
+
+            SV_advance(&parseing, index + multiline_end.size + 2);
+            continue;
+        }
+
+        return parseing;
+    }
+}
+
+
 // advance the parser by 'count' characters, also dose line num counting and stuff
 local inline void tk_advance(Tokenizer *t, s64 count) {
     assert(t->parseing.size >= count); // dont do anything stupid!
@@ -87,56 +143,9 @@ local inline void tk_advance(Tokenizer *t, s64 count) {
 }
 
 local void chop_whitespace(Tokenizer *t) {
-    while (True) {
-        // advance cursor until non whitespace
-        while (t->parseing.size > 0 && is_space(t->parseing.data[0])) {
-            tk_advance(t, 1);
-        }
-
-        // return on eof
-        if (t->parseing.size == 0) return;
-
-        // check if the char is comment char
-        if (t->parseing.size < 2) return;
-
-        // comments need 2 char's
-        if (t->parseing.data[0] == '/' && t->parseing.data[1] == '/') {
-            // its a line comment
-            tk_advance(t, 2);
-            s64 index = find_index_of_char(t->parseing, '\n');
-            if (index == -1) {
-                tk_advance(t, t->parseing.size);
-                return;
-            }
-
-            // advance past the line.
-            tk_advance(t, index + 1);
-            continue;
-        }
-
-        if (t->parseing.data[0] == '/' && t->parseing.data[1] == '*') {
-            // is a multiline comment
-            // TODO support multiline layers.
-
-            // forward is for makeing the error thing a bit better
-            SV forward = {.data = t->parseing.data + 2, .size = t->parseing.size - 2};
-
-            s64 index = find_index_of(forward, multiline_end);
-            if (index == -1) {
-                SV current_line = get_tokenizer_current_line(t);
-                report_Tokenizer_error(t,
-                    current_line,
-                    "Unexpected EOF when tokenizing multiline comment.",
-                    "Try adding a '*/' to close the multiline comment, note that multiple levels of /**/ are currently not supported.");
-            }
-
-            tk_advance(t, index + multiline_end.size + 2);
-            continue;
-        }
-
-
-        return;
-    }
+    SV new_parseing = chop_programer_whitespace(t, t->parseing);
+    s64 how_far_forward = new_parseing.data - t->parseing.data;
+    tk_advance(t, how_far_forward);
 }
 
 
@@ -156,7 +165,10 @@ local Token get_next_token(Tokenizer *t) {
         return result;
     }
 
-    if (is_alpha(t->parseing.data[0])) {
+    char next_char = t->parseing.data[0];
+
+    // identifier
+    if (is_alpha(next_char)) {
         SV ident = {.data = t->parseing.data, .size = 1};
         for (s64 i = 1; i < t->parseing.size; i++) {
             if (!is_ident_char(t->parseing.data[i])) break;
@@ -168,11 +180,13 @@ local Token get_next_token(Tokenizer *t) {
         return result;
     }
 
-    if (is_digit(t->parseing.data[0])) {
+    // number literal
+    if (is_digit(next_char)) {
         assert(False && "TODO: get_next_token: parse int literal");
     }
 
-    if (t->parseing.data[0] == '"') {
+    // string lit
+    if (next_char == '"') {
         SV thing = { .data = t->parseing.data + 1, .size = t->parseing.size - 1 };
 
         while (True) {
@@ -220,8 +234,33 @@ local Token get_next_token(Tokenizer *t) {
         return result;
     }
 
+    // other combined tokens.
+
+    if (next_char == ':') {
+        // we need to skip past the spaces, so:
+        //     foo : /* add type later */ : 5;
+        // works
+        SV next = chop_programer_whitespace(t, SV_advanced(t->parseing, 1));
+
+        // check for EOF, we dont care, we give tokens.
+        if (next.size > 0) {
+            if (next.data[0] == ':' || next.data[0] == '=') {
+                // the next char is one we want
+                result.kind = next.data[0] == ':' ? TK_DECL_CONST : TK_DECL_ASSIGN;
+                result.text = (SV){
+                    .data = t->parseing.data,
+                    .size = 1 + next.data - t->parseing.data,
+                };
+                return result;
+            }
+        }
+
+        // else, just let it fall though.
+    }
+
+
     // just return the single char
-    result.kind = t->parseing.data[0];
+    result.kind = next_char;
     result.text = (SV){ .data = t->parseing.data, .size = 1 };
     return result;
 }
@@ -302,9 +341,11 @@ Token take_token(Tokenizer *t, s64 count) {
 
 const char *token_to_name(Token token) {
     switch ((int)token.kind) {
-        case TK_Eof:        return "EOF";
-        case TK_Ident:      return "Ident";
-        case TK_String_Lit: return "String Literal";
+        case TK_Eof:         return "EOF";
+        case TK_Ident:       return "Ident";
+        case TK_String_Lit:  return "String Literal";
+        case TK_DECL_CONST:  return "Decl Const";
+        case TK_DECL_ASSIGN: return "Decl Assign";
 
         case ':': return "Colon";
         case ';': return "Semi Colon";

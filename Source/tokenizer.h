@@ -20,6 +20,11 @@ typedef enum TokenKind {
     TK_Ident = 256,
     TK_String_Lit = 257,
 
+    // these are there to make it easier to parse before i add types.
+    TK_DECL_CONST,  // ::
+    TK_DECL_ASSIGN, // :=
+
+
     TK_Eof = 999,
     TK_ERROR = 1000,
 } TokenKind;
