@@ -294,29 +294,24 @@ local AST_Node *parse_expression(Tokenizer *t) {
     if (token.kind == ')') return left;
     if (token.kind == ',') return left;
     if (token.kind == ']') return left;
-    // if (token.kind == '') return left;
 
-    if (token.kind == ':') {
-        take_next_token(t);
-        // its a declaration.
-        // TODO parse more thoroughly
-        Token after_dec = peek_next_token(t);
 
-        assert(after_dec.kind == ':' && "we only handle const assign");
+    if (token.kind == TK_DECL_CONST) {
+        // const assign left to right
         take_next_token(t);
+
+        AST_Node *right = parse_expression(t);
+        assert(right != NULL && "must have a right side.");
 
         AST_Node_Const_Assignment *decl = new_node_decl();
         decl->left = left;
-
-        AST_Node *right = parse_expression(t);
-
-        assert(right != NULL && "must have a right side...");
-
         decl->right = right;
-        // TODO this is only right when the last arg is a function or something?
+
+        if (right->kind != AST_FUNCTION) {
+            assert(False && "TODO, do we take a token here? to check for ';'");
+        }
         return (AST_Node*) decl;
     }
-
 
     report_AST_unexpected_token(t, "parse expression next character", token, NULL);
 }
@@ -339,10 +334,80 @@ AST_Node_ptr_Array tokenizer_to_AST(Tokenizer *t) {
 }
 
 
+local void print_spaces(int n) {
+    for (int i = 0; i < n; i++) printf("|   ");
+}
 
+local void print_helper(AST_Node *node, int depth) {
+    // because c warns us...
+    AST_Node_Const_Assignment *const_ass = (AST_Node_Const_Assignment*)node;
+    AST_Node_Ident *ident_node = (AST_Node_Ident*) node;
+    AST_Node_String_Lit *str_lit_node = (AST_Node_String_Lit*) node;
+    AST_Node_Function *function_node = (AST_Node_Function*) node;
+    AST_Node_Call_Function *call_function_node = (AST_Node_Call_Function*) node;
+
+    switch (node->kind) {
+    case AST_CONST_ASSIGNMENT:
+        print_spaces(depth);
+        printf("Const Assign:\n");
+            print_spaces(depth+1);
+            printf("left:\n");
+                print_helper(const_ass->left, depth + 2);
+            print_spaces(depth+1);
+            printf("right:\n");
+                print_helper(const_ass->right, depth + 2);
+        break;
+
+    case AST_IDENT:
+        print_spaces(depth);
+        printf("Ident: "SV_Fmt"\n", SV_Arg(ident_node->ident));
+        break;
+    case AST_STRING_LIT:
+        print_spaces(depth);
+        printf("String Lit: "SV_Fmt"\n", SV_Arg(str_lit_node->literal));
+        break;
+
+    case AST_FUNCTION:
+        print_spaces(depth);
+        printf("Function:\n");
+        for (s64 i = 0; i < function_node->expressions.count; i++) {
+            print_spaces(depth+1);
+            printf("Expression:\n");
+                print_helper(function_node->expressions.items[i], depth+2);
+        }
+        break;
+
+    case AST_CALL_FUNCTION:
+        print_spaces(depth);
+        printf("Calling Function:\n");
+            print_spaces(depth+1);
+            printf("left:\n");
+                print_helper(call_function_node->left, depth+2);
+
+            print_spaces(depth+1);
+            printf("right:\n");
+            for (s64 i = 0; i < call_function_node->args.count; i++) {
+                print_spaces(depth+2);
+                printf("Arg:\n");
+                print_helper(call_function_node->args.items[i], depth + 3);
+            }
+        break;
+
+
+    default:
+        printf("Unknown token %d\n", node->kind);
+        assert(False);
+    }
+}
 
 void print_program(AST_Node_ptr_Array array) {
-    (void) array;
+    printf("Printing Program:\n");
+    printf("----------------------------------------------------\n");
 
-    assert(False && "TODO: 'print_program'");
+    for (s64 i = 0; i < array.count; i++) {
+        printf("\n");
+        print_helper(array.items[i], 0);
+    }
+    printf("----------------------------------------------------\n");
+    printf("Finish Printing Program:\n");
 }
