@@ -106,8 +106,13 @@ local void compile_expression(FILE *f, AST_Node *nokind_node, int depth) {
         return;
     }
 
-    default: // fall thought to end
-        break;
+    case AST_NULL: {
+        assert(False && "AST node was null");
+    }
+
+    case AST_FUNCTION: {
+        assert(False && "found Function in compile expression, this should be handled somewhere else.");
+    }
     }
 
     assert(False && "Unknown kind in compile expression.");

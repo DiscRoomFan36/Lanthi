@@ -20,7 +20,6 @@ typedef enum AST_Node_Kind {
     AST_FUNCTION,
     AST_CALL_FUNCTION,
     AST_CONST_ASSIGNMENT,
-    AST_ARGUMENT,
     AST_STRING_LIT,
 } AST_Node_Kind;
 
