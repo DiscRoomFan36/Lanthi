@@ -1,6 +1,6 @@
 
 CC = clang
-CFLAGS = -Wall -Wextra -pedantic -ggdb
+CFLAGS = -Wall -Wextra -pedantic -Werror -ggdb
 # CFLAGS += -O2
 
 SOURCE  := ./Source
